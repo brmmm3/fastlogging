@@ -13,6 +13,7 @@ import traceback
 from collections import deque
 from threading import Thread, Timer, Event
 
+
 # Log-Levels
 LOG_FATAL = 50
 LOG_ERROR = 40
@@ -51,12 +52,12 @@ WR_DIRECT = 0
 WR_THREAD = 1
 
 
-def shutdown(now = False):
-    for logger in Logger.domains.values():
-        logger.shutdown(now)
+def Shutdown(now = True):
+    for logger in tuple(Logger.domains.values()):
+        logger.shutdown(True)
 
 
-atexit.register(shutdown)
+atexit.register(Shutdown)
 
 
 class LastMessage:
@@ -155,7 +156,7 @@ class Logger(object):
             if args:
                 msg = msg % args
         except:
-            print("fastlogging.__log: Exception:", ( msg, args ), file = sys.stderr)
+            print("fastlogging.log: Exception:", ( msg, args ), file = sys.stderr)
             traceback.print_exc()
             traceback.print_stack()
             return
@@ -164,6 +165,9 @@ class Logger(object):
         else:
             self.queue.append((time.time(), self.__domain, level, msg, kwargs))
             self.evtQueue.set()
+
+    def log(self, level, msg, *args, **kwargs):
+        self.__log(level, msg, args, kwargs)
 
     def debug(self, msg, *args, **kwargs):
         if self.__level <= LOG_DEBUG:
@@ -400,4 +404,3 @@ def LogInit(domain, level, pathName = None, maxSize = 0, backupCnt = 0, console 
     if colors and (NORMAL == ""):
         logger.warning("Module colorama not installed! Colored log not available")
     return logger
-
