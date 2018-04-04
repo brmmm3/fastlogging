@@ -7,7 +7,7 @@ import ast
 import inspect
 from types import ModuleType
 
-from . import LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR, LOG_FATAL
+from fastlogging import DEBUG, INFO, WARNING, ERROR, FATAL
 
 
 class OptimizeAst(ast.NodeTransformer):
@@ -16,46 +16,46 @@ class OptimizeAst(ast.NodeTransformer):
         self.id = id_
         self.__const2value = const2value
         self.__value2const = value2const
-        self.__level2func = { "LOG_DEBUG" : "debug", "LOG_INFO" : "info", "LOG_WARNING" : "warning",
-                              "LOG_ERROR" : "error", "LOG_FATAL" : "fatal" }
-        self.__level2value = { "LOG_DEBUG" : LOG_DEBUG, "LOG_INFO" : LOG_INFO, "LOG_WARNING" : LOG_WARNING,
-                               "LOG_ERROR" : LOG_ERROR, "LOG_FATAL" : LOG_FATAL }
-        self.__value2level = { LOG_DEBUG : "LOG_DEBUG", LOG_INFO : "LOG_INFO", LOG_WARNING : "LOG_WARNING",
-                               LOG_ERROR : "LOG_ERROR", LOG_FATAL : "LOG_FATAL" }
+        self.__level2func = { "DEBUG" : "debug", "INFO" : "info", "WARNING" : "warning",
+                              "ERROR" : "error", "FATAL" : "fatal" }
+        self.__level2value = { "DEBUG" : DEBUG, "INFO" : INFO, "WARNING" : WARNING,
+                               "ERROR" : ERROR, "FATAL" : FATAL }
+        self.__value2level = { DEBUG : "DEBUG", INFO : "INFO", WARNING : "WARNING",
+                               ERROR : "ERROR", FATAL : "FATAL" }
         self.__level2optimize = self.__level2dict(optimize)
         self.__level2unoptimize = self.__level2dict(deoptimize)
         self.__remove = set()
         self.__removeLevel = set()
-        if remove >= LOG_DEBUG:
+        if remove >= DEBUG:
             self.__remove.add("debug")
-            self.__removeLevel.add("LOG_DEBUG")
-        if remove >= LOG_INFO:
+            self.__removeLevel.add("DEBUG")
+        if remove >= INFO:
             self.__remove.add("info")
-            self.__removeLevel.add("LOG_INFO")
-        if remove >= LOG_WARNING:
+            self.__removeLevel.add("INFO")
+        if remove >= WARNING:
             self.__remove.add("warning")
-            self.__removeLevel.add("LOG_WARNING")
-        if remove >= LOG_ERROR:
+            self.__removeLevel.add("WARNING")
+        if remove >= ERROR:
             self.__remove.add("error")
-            self.__removeLevel.add("LOG_ERROR")
-        if remove >= LOG_FATAL:
+            self.__removeLevel.add("ERROR")
+        if remove >= FATAL:
             self.__remove.add("fatal")
             self.__remove.add("critical")
-            self.__removeLevel.add("LOG_FATAL")
+            self.__removeLevel.add("FATAL")
 
     def __level2dict(self, level):
         level2dict = {}
-        if level >= LOG_FATAL:
-            level2dict["fatal"] = "LOG_FATAL"
-            self.__level2optimize["critical"] = "LOG_FATAL"
-        if level >= LOG_ERROR:
-            level2dict["error"] = "LOG_ERROR"
-        if level >= LOG_WARNING:
-            level2dict["warning"] = "LOG_WARNING"
-        if level >= LOG_INFO:
-            level2dict["info"] = "LOG_INFO"
-        if level >= LOG_DEBUG:
-            level2dict["debug"] = "LOG_DEBUG"
+        if level >= FATAL:
+            level2dict["fatal"] = "FATAL"
+            level2dict["critical"] = "FATAL"
+        if level >= ERROR:
+            level2dict["error"] = "ERROR"
+        if level >= WARNING:
+            level2dict["warning"] = "WARNING"
+        if level >= INFO:
+            level2dict["info"] = "INFO"
+        if level >= DEBUG:
+            level2dict["debug"] = "DEBUG"
         return level2dict
 
     def __compare_args(self, levelName):
@@ -66,7 +66,7 @@ class OptimizeAst(ast.NodeTransformer):
 
     def __levelName_compare_args(self, args):
         try:
-            levelName = args.id # e.g. LOG_INFO
+            levelName = args.id # e.g. INFO
             compare, args = self.__compare_args(levelName)
         except:
             levelNum = args.n
@@ -93,8 +93,8 @@ class OptimizeAst(ast.NodeTransformer):
                         attr = attr, ctx = ast.Load()),
                     args = args,
                     keywords = body.keywords,
-                    starargs = body.starargs,
-                    kwargs = body.kwargs))
+                    starargs = body.starargs if hasattr(body, "starargs") else None,
+                    kwargs = body.kwargs if hasattr(body, "kwargs") else None))
 
     def visit_If(self, node):
         try:
@@ -115,7 +115,7 @@ class OptimizeAst(ast.NodeTransformer):
             # if logger.level <= LOG_foo:
             #     logger.log(LOG_foo, ...)
             body_args = body.args[1:]
-            level = self.__level2func[levelName] # e.g. LOG_ERROR -> error
+            level = self.__level2func[levelName] # e.g. ERROR -> error
             if level not in self.__level2optimize:
                 if level in self.__level2unoptimize:
                     # Deoptimize -> remove 'if' and 'log' -> 'foo'
@@ -156,7 +156,7 @@ class OptimizeAst(ast.NodeTransformer):
             if levelName in self.__removeLevel:
                 return None
             value_args = value.args[1:]
-            level = self.__level2func[levelName] # e.g. LOG_ERROR -> error
+            level = self.__level2func[levelName] # e.g. ERROR -> error
             if level not in self.__level2optimize:
                 if level in self.__level2unoptimize:
                     # Deoptimize

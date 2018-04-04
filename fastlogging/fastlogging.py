@@ -3,8 +3,6 @@
 
 """Implements lightweight and fast logging."""
 
-__author__ = 'Martin Bammer (mrbm74@gmail.com)'
-
 import os
 import sys
 import atexit
@@ -13,23 +11,23 @@ import traceback
 from collections import deque
 from threading import Thread, Timer, Event
 
-
 # Log-Levels
-LOG_FATAL = 50
-LOG_ERROR = 40
-LOG_WARNING = 30
-LOG_INFO = 20
-LOG_DEBUG = 10
+CRITICAL = 50
+FATAL = 50
+ERROR = 40
+WARNING = 30
+INFO = 20
+DEBUG = 10
 
-LOG2SYM = { LOG_FATAL : "FATAL  ", LOG_ERROR : "ERROR  ", LOG_WARNING : "WARNING",
-            LOG_INFO : "INFO   ", LOG_DEBUG : "DEBUG  " }
+LOG2SYM = {FATAL : "FATAL  ", ERROR : "ERROR  ", WARNING : "WARNING",
+           INFO : "INFO   ", DEBUG : "DEBUG  "}
 
-LOG2SSYM = { LOG_FATAL : "FAT", LOG_ERROR : "ERR", LOG_WARNING : "WRN",
-             LOG_INFO : "INF", LOG_DEBUG : "DBG" }
+LOG2SSYM = {FATAL : "FAT", ERROR : "ERR", WARNING : "WRN",
+            INFO : "INF", DEBUG : "DBG"}
 
 try:
-    from colorama import Fore, Style
-
+    from colorama import init as initColorama, Fore, Style
+    initColorama()
     NORMAL = Style.RESET_ALL
     BRIGHT = Style.BRIGHT
     WHITE = Fore.WHITE
@@ -40,210 +38,215 @@ try:
     BRIGHTYELLOW = BRIGHT + YELLOW
     BRIGHTGREEN = BRIGHT + GREEN
 
-    LVL2COL = { LOG_FATAL : BRIGHTRED, LOG_ERROR : RED, LOG_WARNING : BRIGHTYELLOW,
-                LOG_INFO: BRIGHTGREEN, LOG_DEBUG: WHITE }
+    LVL2COL = {FATAL : BRIGHTRED, ERROR : RED, WARNING : BRIGHTYELLOW,
+               INFO: BRIGHTGREEN, DEBUG: WHITE}
 except ImportError:
     NORMAL = ""
     BRIGHTRED = ""
 
-    LVL2COL = { LOG_FATAL : "", LOG_ERROR : "", LOG_WARNING : "", LOG_INFO: "",  LOG_DEBUG: "" }
-
-WR_DIRECT = 0
-WR_THREAD = 1
+    LVL2COL = {FATAL : "", ERROR : "", WARNING : "", INFO : "", DEBUG : ""}
 
 
-def Shutdown(now = True):
-    for logger in tuple(Logger.domains.values()):
-        logger.shutdown(True)
+def Shutdown(now=True):
+    for logger in tuple(domains.values()):
+        logger.shutdown(now)
 
 
 atexit.register(Shutdown)
 
 
-class LastMessage:
-    key = None
-    cnt = 1
-    entry = None
+domains = {}            # Dictionary holding all Logger instances for the configured domains
+
+
+class LastMessage(object):
+
+    def __init__(self, key, cnt, entry):
+        self.key = None
+        self.cnt = 1
+        self.entry = None
+
+
+class CommonConfig(object):
+
+    def __init__(self, queue, evtQueue, evtRotate, maxSize, backupCnt):
+        self.queue = queue
+        self.evtQueue = evtQueue
+        self.evtRotate = evtRotate
+        self.maxSize = maxSize
+        self.backupCnt = backupCnt
+
+
+class ConsoleLogger(Thread):
+
+    def __init__(self):
+        self.name = "LogConsoleThread"
+        self.daemon = True
+        self.queue = deque()
+        self.evtQueue = Event()
+        self.stdOut = sys.stdout
+        self.stdErr = sys.stderr
+
+    def append(self, message):
+        self.queue.append(message)
+        self.evtQueue.set()
+
+    def run(self):
+        while True:
+            try:
+                entry = self.queue.popleft()
+                if entry is None:
+                    break
+            except:
+                self.evtQueue.wait()
+                self.evtQueue.clear()
+                continue
+            print(entry[1], file=self.stdOut if entry[0] < ERROR else self.stdErr)
 
 
 class Logger(object):
-    domains = {}
-    backlog = deque(maxlen = 1000)
+
+    backlog = None
     dateFmt = "%y.%m.%d %H:%M:%S"
-    cbMessageKey = None
-    cbFormatter = None
-    cbWriter = None
-    colors = False
-    compress = None     # ( CompressorInstance, CompressedFileExtension )
-    write = WR_DIRECT
+    cbMessageKey = None     # Custom log messages key calculation callback function
+    cbFormatter = None      # Custom log messages formatter callback function
+    cbWriter = None         # Custom log messages writer callback function
+    colors = False          # Enable/Disable colored logging to console
+    compress = None         # ( CompressorInstance, CompressedFileExtension )
+    useThreads = False      # Write log messages in main thread or in background thread
     encoding = None
+    sameMsgTimeout = 30.0   # Timeout for same log messages in a row
+    sameMsgCountMax = 1000  # Maximum counter value for same log messages in a row
+    thrConsoleLogger = None
 
     def __init__(self, domain, level, pathName, maxSize, backupCnt, console):
         if (maxSize < 0) or (backupCnt < 0) or ((maxSize > 0) and (backupCnt == 0)):
             raise ValueError("Invalid maxSize or backupCnt")
-        self.__domain = domain
-        self.__level = level
-        self.queue = deque()
-        self.evtQueue = Event()
-        self.evtRotate = Event()
-        self._lastMsg = LastMessage()
+        self.domain = domain
+        self.level = level
+        self.common = CommonConfig(deque(), Event(), Event(), maxSize, backupCnt)
+        self._lastMsg = LastMessage(None, 1, None)
         self.pathName = pathName
         self.F = None
         self.buf = []
         self.size = 0
         self.pos = 0
-        self.maxSize = maxSize
-        self.backupCnt = backupCnt
         self.__console = console
         self.__thrTimer = None
         self.__thrLogger = None
-        self.__stopped = False
-        if pathName is None:
-            pass
-        elif os.path.isdir(os.path.dirname(pathName)):
-            for logger in Logger.domains.values():
+        self.stopped = False
+        if pathName is not None and os.path.isdir(os.path.dirname(pathName)):
+            for logger in domains.values():
                 if pathName == logger.pathName:
-                    self.queue = logger.queue
-                    self.evtQueue = logger.evtQueue
-                    self.evtRotate = logger.evtRotate
-                    self.maxSize = logger.maxSize
-                    self.backupCnt = logger.backupCnt
+                    common = logger.common
+                    self.common = CommonConfig(common.queue, common.evtQueue, common.evtRotate,
+                                               common.maxSize, common.backupCnt)
                     break
             else:
-                self.F = open(pathName, "a", encoding = Logger.encoding)
+                self.F = open(pathName, "a", encoding=Logger.encoding)
                 self.pos = self.F.tell()
-                if Logger.write == WR_THREAD:
-                    self.__thrLogger = Thread(target = self.__logThread, daemon = True, name = "LogThread")
+                if Logger.useThreads:
+                    self.__thrLogger = Thread(target=self.__logThread, daemon=True,
+                                              name="LogThread_%s" % domain)
                     self.__thrLogger.start()
-        else:
-            raise ValueError("Invalid path %s" % pathName)
-
-    @property
-    def stopped(self):
-        return self.__stopped
-
-    @property
-    def domain(self):
-        return self.__domain
-
-    @property
-    def level(self):
-        return self.__level
+        if Logger.useThreads and Logger.thrConsoleLogger is None:
+            Logger.thrConsoleLogger = ConsoleLogger()
+            Logger.thrConsoleLogger.start()
 
     def setLevel(self, level):
-        self.__level = level
+        self.level = level
 
     @staticmethod
     def setBacklog(size):
-        Logger.backlog = deque(Logger.backlog, maxlen = size)
-
-    @staticmethod
-    def setMessageKey(cbMessageKey):
-        Logger.cbMessageKey = cbMessageKey
-
-    @staticmethod
-    def setFormatter(cbFormatter):
-        Logger.cbFormatter = cbFormatter
-
-    @staticmethod
-    def setWriter(cbWriter):
-        Logger.cbWriter = cbWriter
+        if size > 0:
+            Logger.backlog = deque(Logger.backlog, maxlen=size)
+        else:
+            Logger.backlog = None
 
     def __log(self, level, msg, args, kwargs):
         if self.stopped:
             raise RuntimeError("Logger already stopped")
-        try:
-            if args:
-                msg = msg % args
-        except:
-            print("fastlogging.log: Exception:", ( msg, args ), file = sys.stderr)
-            traceback.print_exc()
-            traceback.print_stack()
-            return
-        if Logger.write == WR_DIRECT:
-            self.__logEntry(( time.time(), self.__domain, level, msg, kwargs ))
+        if args:
+            msg = msg % args
+        if not Logger.useThreads or self.__thrLogger is None:
+            self.__logEntry((time.time(), self.domain, level, msg, kwargs))
         else:
-            self.queue.append((time.time(), self.__domain, level, msg, kwargs))
-            self.evtQueue.set()
+            self.common.queue.append((time.time(), self.domain, level, msg, kwargs))
+            self.common.evtQueue.set()
 
     def log(self, level, msg, *args, **kwargs):
         self.__log(level, msg, args, kwargs)
 
     def debug(self, msg, *args, **kwargs):
-        if self.__level <= LOG_DEBUG:
-            self.__log(LOG_DEBUG, msg, args, kwargs)
+        if self.level <= DEBUG:
+            self.__log(DEBUG, msg, args, kwargs)
 
     def info(self, msg, *args, **kwargs):
-        if self.__level <= LOG_INFO:
-            self.__log(LOG_INFO, msg, args, kwargs)
+        if self.level <= INFO:
+            self.__log(INFO, msg, args, kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        if self.__level <= LOG_WARNING:
-            self.__log(LOG_WARNING, msg, args, kwargs)
+        if self.level <= WARNING:
+            self.__log(WARNING, msg, args, kwargs)
 
     def error(self, msg, *args, **kwargs):
-        if self.__level <= LOG_ERROR:
-            self.__log(LOG_ERROR, msg, args, kwargs)
+        if self.level <= ERROR:
+            self.__log(ERROR, msg, args, kwargs)
 
     def fatal(self, msg, *args, **kwargs):
-        if self.__level <= LOG_FATAL:
-            self.__log(LOG_FATAL, msg, args, kwargs)
+        if self.level <= FATAL:
+            self.__log(FATAL, msg, args, kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        if self.__level <= LOG_FATAL:
-            self.__log(LOG_FATAL, msg, args, kwargs)
+        if self.level <= FATAL:
+            self.__log(FATAL, msg, args, kwargs)
 
     def exception(self, msg, *args, **kwargs):
         kwargs["exc_info"] = traceback.format_exc()
-        self.__log(LOG_FATAL, msg, args, kwargs)
+        self.__log(FATAL, msg, args, kwargs)
 
-    @staticmethod
-    def getBacklog(size = 0):
-        if size < 0:
-            raise ValueError("Invalid size")
-        if size == 0:
-            return Logger.backlog
-        return list(Logger.backlog)[-size:]
-
-    def stop(self, now = False):
-        if not self.__thrTimer is None:
+    def stop(self, now=False):
+        if self.__thrTimer is not None:
             self.__thrTimer.cancel()
             self.__thrTimer.join()
             self.__thrTimer = None
             self.__logMessage(self._lastMsg.key, self._lastMsg.entry, self._lastMsg.cnt)
         if now:
-            self.queue.clear()
-        self.queue.append(None)
-        self.evtQueue.set()
-        self.__stopped = True
+            self.common.queue.clear()
+        self.common.queue.append(None)
+        self.common.evtQueue.set()
+        self.stopped = True
 
     def join(self):
-        if not self.__thrLogger is None:
+        if self.__thrLogger is not None:
             self.__thrLogger.join()
             self.__thrLogger = None
-        del Logger.domains[self.__domain]
+        del domains[self.domain]
+        if not domains and Logger.thrConsoleLogger is not None:
+            Logger.thrConsoleLogger.append(None)
+            Logger.thrConsoleLogger.join()
+            Logger.thrConsoleLogger = None
 
-    def shutdown(self, now = False):
+    def shutdown(self, now=False):
         self.stop(now)
         self.join()
 
-    def rotate(self, logger = None):
+    def rotate(self, logger=None):
         if logger is None:
-            loggers = Logger.domains.values()
+            loggers = domains.values()
         else:
-            loggers = [ logger ]
+            loggers = [logger]
         signaled = set()
         for logger in loggers:
-            if logger.evtRotate in signaled:
+            if logger.F is None or logger.common.evtRotate in signaled:
                 continue
             signaled.add(logger)
-            if Logger.write == WR_DIRECT:
-                self.__rotate(logger)
+            if Logger.useThreads:
+                logger.common.evtRotate.set()
+                logger.common.evtQueue.set()
             else:
-                logger.evtRotate.set()
-                logger.evtQueue.set()
+                self.__rotate(logger)
 
-    def __rotate(self, logger = None):
+    def __rotate(self, logger=None):
         self.__writePending(logger)
         logger.F.flush()
         logger.F.close()
@@ -252,12 +255,16 @@ class Logger(object):
         pathName = logger.pathName
         dirName, logFileName = os.path.split(pathName)
         zExt = "" if Logger.compress is None else Logger.compress[1]
-        fileNames = { fileName for fileName in os.listdir(dirName) if fileName.startswith(logFileName) }
-        for cnt in range(self.backupCnt, 1, -1):
-            srcFileName = "%s.%d%s" % (logFileName, cnt - 1, zExt)
-            if srcFileName not in fileNames:
-                continue
-            os.replace(path_join(dirName, srcFileName), path_join(dirName, "%s.%d%s" % (logFileName, cnt, zExt)))
+        fileNames = {fileName for fileName in os.listdir(dirName) if fileName.startswith(logFileName)}
+        try:
+            for cnt in range(self.common.backupCnt, 1, -1):
+                srcFileName = "%s.%d%s" % (logFileName, cnt - 1, zExt)
+                if srcFileName not in fileNames:
+                    continue
+                os.replace(path_join(dirName, srcFileName),
+                           path_join(dirName, "%s.%d%s" % (logFileName, cnt, zExt)))
+        except:
+            pass
         dstFileName = "%s.1%s" % (logFileName, zExt)
         if Logger.compress is None:
             os.replace(pathName, path_join(dirName, dstFileName))
@@ -265,7 +272,7 @@ class Logger(object):
             with open(path_join(dirName, dstFileName), "wb") as Z:
                 Z.write(Logger.compress[0].compress(open(pathName, "rb").read()))
             os.remove(pathName)
-        logger.F = open(pathName, "a", encoding = Logger.encoding)
+        logger.F = open(pathName, "a", encoding=Logger.encoding)
 
     @staticmethod
     def __writePending(logger):
@@ -273,28 +280,14 @@ class Logger(object):
             if Logger.cbWriter is None:
                 data = "".join(logger.buf)
                 logger.F.write(data)
-                logger.buf = []
+                del logger.buf[:]
                 logger.size = 0
             else:
                 Logger.cbWriter(logger)
 
-    def __logWriteRotate(self, logger, message):
-        logger.buf.append(message + "\n")
-        size = len(message) + 1
-        logger.size += size
-        if logger.maxSize == 0:
-            if (logger.size >= 65536) or (Logger.write == WR_DIRECT):
-                self.__writePending(logger)
-            return
-        logger.pos += size
-        if logger.pos < logger.maxSize:
-            if Logger.write == WR_DIRECT:
-                self.__writePending(logger)
-            return
-        self.__rotate(logger)
-
-    def __logMessage(self, key, entry, cnt = 0):
-        Logger.backlog.append(entry)
+    def __logMessage(self, key, entry, cnt=0):
+        if Logger.backlog is not None:
+            Logger.backlog.append(entry)
         logTime, _, level, msg, kwargs = entry # logTime, domain, level, msg, kwargs
         if Logger.cbFormatter is None:
             sTime = time.strftime(Logger.dateFmt, time.localtime(logTime))
@@ -311,34 +304,49 @@ class Logger(object):
         self._lastMsg.entry = entry
         console = False
         try:
-            if not self.F is None:
-                self.__logWriteRotate(self, message)
+            if self.F is not None:
+                self.buf.append(message + "\n")
+                size = len(message) + 1
+                self.size += size
+                if self.common.maxSize == 0:
+                    if (self.size >= 65536) or not Logger.useThreads:
+                        self.__writePending(self)
+                    return
+                self.pos += size
+                if self.pos < self.common.maxSize:
+                    if not Logger.useThreads:
+                        self.__writePending(self)
+                    return
                 console = self.__console
         except:
-            traceback.print_exc()
-            console = True
-        if console or kwargs.get("console", False):
-            F = sys.stdout if level < LOG_ERROR else sys.stderr
+            errMsg = traceback.format_exc()
+            if Logger.backlog is not None:
+                Logger.backlog.append(errMsg)
+            print("%s%s%s" % (BRIGHTRED, errMsg, NORMAL), file=sys.stderr)
+        if console or self.__console or kwargs.get("console", False):
             if Logger.colors:
                 if "color" in kwargs:
                     color = kwargs["color"]
                 else:
-                    color = LVL2COL.get(level, LOG_FATAL)
-                print("%s%s%s" % (color, message, NORMAL), file = F)
+                    color = LVL2COL.get(level, FATAL)
+                message = "%s%s%s" % (color, message, NORMAL)
+            if Logger.thrConsoleLogger is None:
+                print(message, file=sys.stdout if level < ERROR else sys.stderr)
             else:
-                print(message, file = F)
+                Logger.thrConsoleLogger.append((level, message))
 
     def __logEntry(self, entry):
-        msg = entry[3]  # logTime, domain, level, msg, kwargs
+        # logTime, domain, level, msg, kwargs
         if Logger.cbMessageKey is None:
-            key = msg
+            key = entry[3]
         else:
             key = Logger.cbMessageKey(self, entry)
-        if (key == self._lastMsg.key) and (self._lastMsg.cnt < 1000):
-            self._lastMsg.cnt += 1
-            self._lastMsg.entry = entry
+        _lastMsg = self._lastMsg
+        if (key == _lastMsg.key) and (_lastMsg.cnt < Logger.sameMsgCountMax):
+            _lastMsg.cnt += 1
+            _lastMsg.entry = entry
             if self.__thrTimer is None:
-                self.__thrTimer = Timer(30.0, self.__logMessage, key, entry)
+                self.__thrTimer = Timer(Logger.sameMsgTimeout, self.__logMessage, key, entry)
                 self.__thrTimer.start()
         elif self.__thrTimer is None:
             self.__logMessage(key, entry)
@@ -346,15 +354,15 @@ class Logger(object):
             self.__thrTimer.cancel()
             self.__thrTimer.join()
             self.__thrTimer = None
-            self.__logMessage(key, self._lastMsg.entry, self._lastMsg.cnt)
+            self.__logMessage(key, _lastMsg.entry, _lastMsg.cnt)
             self.__logMessage(key, entry)
 
     def __logThread(self):
         while True:
             try:
-                entry = self.queue.popleft()
+                entry = self.common.queue.popleft()
                 if entry is None:
-                    if not self.F is None:
+                    if self.F is not None:
                         if self.buf:
                             self.__writePending(self)
                         self.F.flush()
@@ -362,45 +370,50 @@ class Logger(object):
                         self.F = None
                     break
             except:
-                if not self.F is None and self.buf:
+                if self.F is not None and self.buf:
                     self.__writePending(self)
-                self.evtQueue.wait()
-                self.evtQueue.clear()
-                if self.evtRotate.is_set():
-                    self.evtRotate.clear()
+                common = self.common
+                common.evtQueue.wait()
+                common.evtQueue.clear()
+                if common.evtRotate.is_set():
+                    common.evtRotate.clear()
                     self.__rotate(self)
                 continue
             try:
                 self.__logEntry(entry)
             except:
                 errMsg = traceback.format_exc()
-                Logger.backlog.append(errMsg)
-                print("%s%s%s" % (BRIGHTRED, errMsg, NORMAL), file = sys.stderr)
+                if Logger.backlog is not None:
+                    Logger.backlog.append(errMsg)
+                print("%s%s%s" % (BRIGHTRED, errMsg, NORMAL), file=sys.stderr)
 
 
-def GetLogger(domain, level, pathName = None, maxSize = 0, backupCnt = 0, console = False):
-    if not Logger.domains:
+def GetLogger(domain=None, level=DEBUG, pathName=None, maxSize=0, backupCnt=0, console=False):
+    if not domains:
         raise ValueError("Call LogInit first")
     if domain is None:
         domain = "root"
-    if domain in Logger.domains:
-        logger = Logger.domains[domain]
-        if not logger is None:
+    if domain in domains:
+        logger = domains[domain]
+        if logger is not None:
             logger.stop()
             logger.join()
-        del Logger.domains[domain]
-    logger = Logger.domains[domain] = Logger(domain, level, pathName, maxSize, backupCnt, console)
+        del domains[domain]
+    logger = domains[domain] = Logger(domain, level, pathName, maxSize, backupCnt, console)
     return logger
 
 
-def LogInit(domain, level, pathName = None, maxSize = 0, backupCnt = 0, console = False,
-            colors = False, compress = None, write = WR_DIRECT, encoding = None):
+def LogInit(domain=None, level=DEBUG, pathName=None, maxSize=0, backupCnt=0, console=False,
+            colors=False, compress=None, useThreads=False, encoding=None):
+    if domain is None:
+        domain = "root"
     Logger.colors = colors
     Logger.compress = compress
-    Logger.write = write
+    Logger.useThreads = useThreads
     Logger.encoding = encoding
-    Logger.domains[domain] = None
+    domains[domain] = None
     logger = GetLogger(domain, level, pathName, maxSize, backupCnt, console)
     if colors and (NORMAL == ""):
         logger.warning("Module colorama not installed! Colored log not available")
     return logger
+
