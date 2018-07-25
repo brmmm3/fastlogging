@@ -29,13 +29,13 @@ with open(os.path.join(BASEDIR, 'README.rst'), encoding='utf-8') as F:
 
 setup(
     name='fastlogging',
-    version='0.6.0',
+    version='0.7.0',
     description='An efficient and leightweight logging module.',
     long_description=long_description,
     long_description_content_type='text/x-rst',
 
     url='https://github.com/brmmm3/fastlogging',
-    download_url = 'https://github.com/brmmm3/fastlogging/releases/download/0.6.0/fastlogging-0.6.0.tar.gz',
+    download_url = 'https://github.com/brmmm3/fastlogging/releases/download/0.7.0/fastlogging-0.7.0.tar.gz',
 
     author='Martin Bammer',
     author_email='mrbm74@gmail.com',

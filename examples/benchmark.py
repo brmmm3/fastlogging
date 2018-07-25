@@ -1,105 +1,148 @@
 
 import os
+import sys
 import time
 import logging.handlers
-from fastlogging import FATAL, DEBUG, LogInit, optimize_obj
+
+import simplejson as json
+import shutil
+from fastlogging import FATAL, ERROR, WARNING, INFO, DEBUG, LogInit, LOG2SYM, LOG2SSYM, OptimizeObj
 
 MB = 1024 * 1024
+
+tmpDirName = "C:\\temp" if os.name == 'nt' else "/tmp"
 
 
 def LoggingWork(logger, cnt):
     t1 = time.time()
     for i in range(cnt):
-        logger.warning("Warning %d Message", i)
+        logger.fatal("Fatal %d Message", i)
+        logger.error("Error %d Message", i)
+        logger.warning("Warning Message %d", i)
         logger.info("Info Message %d", i)
-        logger.debug("Fatal Error %d", i)
-        logger.info("Info %d Info", i)
-        logger.warning("Warning %d Message", i)
+        logger.debug("Debug Message %d", i)
+        logger.fatal("Fatal %d Message", i)
+        logger.error("Error %d Message", i)
+        logger.warning("Warning Message %d", i)
         logger.info("Info Message %d", i)
-        logger.debug("Fatal Error %d", i)
-        logger.info("Info %d Info", i)
-        logger.warning("Warning %d Message", i)
+        logger.debug("Debug Message %d", i)
+        logger.fatal("Fatal %d Message", i)
+        logger.error("Error %d Message", i)
+        logger.warning("Warning Message %d", i)
         logger.info("Info Message %d", i)
-        logger.debug("Fatal Error %d", i)
-        logger.info("Info %d Info", i)
-        logger.warning("Warning %d Message", i)
-        logger.info("Info Message %d", i)
-        logger.debug("Fatal Error %d", i)
-        logger.info("Info %d Info", i)
-        logger.warning("Warning %d Message", i)
-        logger.info("Info Message %d", i)
-        logger.debug("Fatal Error %d", i)
-        logger.info("Info %d Info", i)
+        logger.debug("Debug Message %d", i)
         try:
             x = 1 / 0
         except:
             logger.exception("EXCEPTION")
-    logger.info("Info Message")
-    print(cnt, time.time() - t1)
+    dt = time.time() - t1
+    print("  dt: %.3f" % dt)
 
 
-def DoLogging(title, logger, cnt):
-    for fileName in os.listdir("/tmp"):
-        if "logging.log" in fileName:
-            os.remove(os.path.join("/tmp", fileName))
-    print("logging:", title)
+def DoLogging(cnt, level = logging.DEBUG, fileName = None, bRotate = False):
+    title = [ LOG2SSYM[level] ]
+    title.append("FILE" if fileName else "NO FILE")
+    if bRotate:
+        title.append("ROTATE")
+    if fileName:
+        key = "LOGGING_" + "_".join(title)
+        dirName = os.path.join(tmpDirName, key)
+        if os.path.exists(dirName):
+            shutil.rmtree(dirName)
+        os.makedirs(dirName)
+        pathName = os.path.join(dirName, fileName)
+        if bRotate:
+            logHandler = logging.handlers.RotatingFileHandler(pathName, mode = 'a', maxBytes = MB, backupCount = 8)
+        else:
+            logHandler = logging.FileHandler(pathName)
+    else:
+        logHandler = logging.NullHandler()
+    logFormatter = logging.Formatter('%(asctime)-15s %(name)s %(levelname)-8.8s %(message)s', "%Y.%m.%d %H:%M:%S")
+    logHandler.setFormatter(logFormatter)
+    logHandler.setLevel(level)
+    logger = logging.getLogger('root')
+    logger.addHandler(logHandler)
+    logger.setLevel(level)
+    print("logging:", ", ".join(title))
     t1 = time.time()
     LoggingWork(logger, cnt)
-    print("FINISHED", time.time() - t1)
-    print()
+    logHandler.close()
+    dt = time.time() - t1
+    print("  total: %.3f" % dt)
+    return dt
 
 
-def DoFastLogging(title, logger, cnt, cbDoLogging):
-    for fileName in os.listdir("/tmp"):
-        if "fastlogging.log" in fileName:
-            os.remove(os.path.join("/tmp", fileName))
-    print("fastlogging:", title)
+def DoFastLogging(cnt, level = DEBUG, fileName = None, bRotate = False, bThreads = False, compress = None, cbOptimized = None, prefix = None):
+    title = []
+    if prefix:
+        title.append(prefix.upper())
+    title.append(LOG2SSYM[level])
+    title.append("FILE" if fileName else "NO FILE")
+    if bRotate:
+        title.append("ROTATE")
+        size = MB
+        count = 8
+    else:
+        size = 0
+        count = 0
+    title.append("THREADS" if bThreads else "DIRECT")
+    if compress:
+        title.append("COMPRESS")
+    if cbOptimized:
+        title.append("OPTIMIZED")
+    if fileName:
+        key = "FAST_" + "_".join(title)
+        dirName = os.path.join(tmpDirName, key)
+        if os.path.exists(dirName):
+            shutil.rmtree(dirName)
+        os.makedirs(dirName)
+        pathName = os.path.join(dirName, fileName)
+    else:
+        pathName = None
+    print("fastlogging:", ", ".join(title))
     t1 = time.time()
-    cbDoLogging(logger, cnt)
+    logger = LogInit("main", level, pathName, size, count, False, False, useThreads = bThreads, compress = compress)
+    if cbOptimized is None:
+        LoggingWork(logger, cnt)
+    else:
+        cbOptimized(logger, cnt)
     logger.shutdown()
-    print("FINISHED", time.time() - t1)
-    print()
+    dt = time.time() - t1
+    print("  total: %.3f" % dt)
+    return dt
 
 
 if __name__ == "__main__":
     import zstd
     ZC = zstd.ZstdCompressor()
     cnt = 5000
-    logHandler = logging.handlers.RotatingFileHandler("/tmp/logging.log", mode = 'a', maxBytes = MB, backupCount = 8, encoding = None, delay = 0)
-    logFormatter = logging.Formatter('%(asctime)-15s %(name)s %(levelname)-8.8s %(message)s', "%Y.%m.%d %H:%M:%S")
-    logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
-    logger = logging.getLogger('root')
-    logger.addHandler(logHandler)
-    logger.setLevel(logging.DEBUG)
-    #DoLogging("ROTATE", logger, cnt)
-    logger.setLevel(logging.FATAL)
-    DoLogging("ROTATE, FATAL", logger, cnt)
-    #
-    logger = LogInit()
-    logger.setLevel(FATAL)
-    DoFastLogging("NO FILE, DIRECT, FATAL", logger, cnt, LoggingWork)
-    sys.exit(0)
-    logger = LogInit()
-    DoFastLogging("NO FILE, DIRECT", logger, cnt, LoggingWork)
-    logger = LogInit(useThreads = True)
-    DoFastLogging("NO FILE, THREADED", logger, cnt, LoggingWork)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log")
-    DoFastLogging("FILE DIRECT", logger, cnt, LoggingWork)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log", write = WR_THREAD)
-    DoFastLogging("FILE THREADED", logger, cnt, LoggingWork)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log", MB, 8)
-    DoFastLogging("ROTATE DIRECT", logger, cnt, LoggingWork)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log", MB, 8, False, False, write = WR_THREAD)#, ( ZC, ".zstd" ))
-    DoFastLogging("ROTATE THREADED", logger, cnt, LoggingWork)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log", MB, 8, False, False, write = WR_THREAD, compress = ( ZC, ".zstd" ))
-    DoFastLogging("ROTATE COMPRESSED THREADED", logger, cnt, LoggingWork)
-    LoggingWorkOpt = optimize_obj(LoggingWork, "logger", FATAL)
-    logger = LogInit()
-    logger.setLevel(FATAL)
-    DoFastLogging("NO FILE, DIRECT, FATAL, OPTIMIZED", logger, cnt, LoggingWorkOpt)
-    logger = LogInit()
-    DoFastLogging("NO FILE, DIRECT, OPTIMIZED", logger, cnt, LoggingWorkOpt)
-    logger = LogInit("main", DEBUG, "/tmp/fastlogging.log", MB, 8)
-    DoFastLogging("ROTATE DIRECT, OPTIMIZED", logger, cnt, LoggingWorkOpt)
-
+    print("cnt:", cnt)
+    fileName = "logging.log"
+    fastFileName = "logging.log"
+    htmlTemplate = open("../doc/template.html").read()
+    # Benchmark fastlogging module without threads
+    for title, name, fileName, bRotate in ( ( "No log file", "nolog", None, False ),
+                                            ( "Log file", "log", "logging.log", False ),
+                                            ( "Rotating log file", "rotate", "logging.log", True ) ):
+        dtAll = { "TITLE" : title }
+        for level in ( DEBUG, INFO, WARNING, ERROR, FATAL ):
+            dts = []
+            dts.append(DoLogging(cnt, level, fileName, bRotate))
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate))
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, True))
+            # Benchmark fastlogging module with AST optimization constants to values conversion
+            LoggingWorkOptCst = OptimizeObj(LoggingWork, "logger", optimize = FATAL, const2value = True)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOptCst, prefix = "CONST2VALUE"))
+            # Benchmark fastlogging module with AST optimization level
+            LoggingWorkOpt = OptimizeObj(LoggingWork, "logger", optimize = level)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOpt))
+            # Benchmark fastlogging module with AST optimization remove
+            LoggingWorkOptRem = OptimizeObj(LoggingWork, "logger", remove = level)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOptRem, prefix = "REMOVE"))
+            dtAll[LOG2SYM[level].strip()] = ", ".join([ "%.4f" % dt for dt in dts ])
+        with open("../doc/%s.dat" % name, "w") as F:
+            F.write(json.dumps(dtAll))
+        with open("../doc/%s.html" % name, "w") as F:
+            F.write(htmlTemplate % dtAll)
+    # Benchmark fastlogging module with threads
+    #DoFastLogging(cnt, FATAL, fastFileName, bThreads = True)

@@ -181,16 +181,16 @@ class OptimizeAst(ast.NodeTransformer):
             orelse = []), node)
 
 
-def optimize(id_, optimize, deoptimize = 0, remove = 0, const2value = False, value2const = False):
+def Optimize(id_, optimize = 0, deoptimize = 0, remove = 0, const2value = False, value2const = False):
 
-    def optimize_decorator(code):
+    def OptimizeDecorator(code):
         tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(code)
         return compile(ast.fix_missing_locations(tree), filename = "<function>", mode = "exec")
 
-    return optimize_decorator
+    return OptimizeDecorator
 
 
-def optimize_obj(obj, id_, optimize, deoptimize = 0, remove = 0, const2value = False, value2const = False):
+def OptimizeObj(obj, id_, optimize = 0, deoptimize = 0, remove = 0, const2value = False, value2const = False):
     tree = ast.parse(inspect.getsource(obj))
     tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(tree)
     if inspect.ismodule(obj):
@@ -201,7 +201,7 @@ def optimize_obj(obj, id_, optimize, deoptimize = 0, remove = 0, const2value = F
     return getattr(module, obj.__name__)
 
 
-def optimize_module(obj, id_, optimize, deoptimize = 0, remove = 0, const2value = False, value2const = False):
+def OptimizeModule(obj, id_, optimize = 0, deoptimize = 0, remove = 0, const2value = False, value2const = False):
     tree = ast.parse(inspect.getsource(obj))
     tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(tree)
     if inspect.ismodule(obj):
@@ -211,16 +211,16 @@ def optimize_module(obj, id_, optimize, deoptimize = 0, remove = 0, const2value 
     return compile(ast.fix_missing_locations(tree), filename = fileName, mode = "exec")
 
 
-def optimize_file(fileName, id_, optimize, deoptimize = 0, remove = 0, const2value = False, value2const = False):
+def OptimizeFile(fileName, id_, optimize = 0, deoptimize = 0, remove = 0, const2value = False, value2const = False):
     tree = ast.parse(open(fileName).read())
     tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(tree)
-    return compile(ast.fix_missing_locations(tree), filename = module.__file__, mode = "exec")
+    return compile(ast.fix_missing_locations(tree), filename = fileName, mode = "exec")
 
 
-def write_pyc_file(fileName, code):
+def WritePycFile(fileName, code):
     with open(os.path.splitext(fileName)[0] + ".pyc", 'wb') as F:
         F.write('\0\0\0\0')
-        py_compile.wr_long(F, long(time.time()))
+        py_compile.wr_long(F, int(time.time()))
         marshal.dump(code, F)
         F.flush()
         F.seek(0, 0)

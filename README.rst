@@ -1,48 +1,64 @@
 An efficient and lightweight logging module
 ===========================================
 
-A faster a more lightweight version of the standard logging module in Python.
-The standard version comes with a full load of features which are not always required.
-The high complexity makes the logging module slow. The fastlogging module is much smaller
-and has less features with the benefit of a more than 5 times faster logging.
+The ``fastlogging`` module is a faster and more lightweight version of the standard logging module.
+The default logging module comes with a full load of features which are not always required.
+The high complexity makes the logging module slow. The ``fastlogging`` module is much smaller and has less features with the benefit of a more than **5 times faster** logging.
 It comes with the following features:
 
- - (colored) logging to console
+ - (colored, if colorama is installed) logging to console
  - logging to file (maximum file size with rotating/history feature can be configured)
  - old log files can be compressed (the compression algorithm can be configured)
  - count same successive messages within a 30s time frame and log only once the message with the counted value.
  - log domains
  - log to different files
- - writing to log files is done in background thread
- - configure custom detection of same successive message
- - configure custom message formatter
- - configure additional custom log writer
+ - writing to log files is done in (per file) background threads, if configured
+ - configure callback function for custom detection of same successive log messages
+ - configure callback function for custom message formatter
+ - configure callback function for custom log writer
 
 **API**
 =======
 
-
 ``Log levels``
 """"""""""""""
 
- ``LOG_FATAL    Log a fatal/critical message. Default color is bright red.``
+::
 
- ``LOG_ERROR    Log an error message. Default color is red.``
+ LOG_FATAL    Log a fatal/critical message. Default color is bright red.
+ LOG_ERROR    Log an error message. Default color is red.
+ LOG_WARNING  Log a warning message. Default color is bright yellow.
+ LOG_INFO     Log an info message. Default color is bright green.
+ LOG_DEBUG    Log a debug message. Default color is white.
 
- ``LOG_WARNING  Log a warning message. Default color is bright yellow.``
+``Mappings``
+************
 
- ``LOG_INFO     Log an info message. Default color is bright green.``
+::
 
- ``LOG_DEBUG    Log a debug message. Default color is white.``
-
- ``LOG2SYM      A dictionary which maps the integer severity value to a string.``
-
- ``LVL2COL      A dictionary which maps the integer severity to a color.``
+ LOG2SYM      A dictionary which maps the integer severity value to a string.
+ LOG2SSYM     A dictionary which maps the integer severity value to a short string.
+ LVL2COL      A dictionary which maps the integer severity to a color.
 
 ``class Logger``
 """"""""""""""""
 
-Logging class object.
+Logging class object. It contains the following static member variables::
+
+ domains                A dictionary holding all Logger instances for the configured domains.
+ backlog                The last 1000 log messages (and internal exceptions).
+ dateFmt                The date and time format for the log messages.
+ cbMessageKey           Custom log message key calculation callback function to identify same successive messages.
+ cbFormatter            Custom log messages formatter callback function.
+ cbWriter               Custom log messages writer callback function
+ stdOut                 Destination file descriptor sys.stdout
+ stdErr = sys.stderr
+ colors = False          # Enable/Disable colored logging to console
+ compress = None         # ( CompressorInstance, CompressedFileExtension )
+ write = WR_DIRECT       # Write log messages in main thread or in background thread
+ encoding = None
+ sameMsgTimeout = 30.0   # Timeout for same log messages in a row
+ sameMsgCountMax = 1000  # Maximum counter value for same log messages in a row
 
 ``setLevel(level)``
 """""""""""""""""""
@@ -69,6 +85,13 @@ Set (if a callable is supplied) or clear (if None is supplied) the function for 
 Set (if a callable is supplied) or clear (if None is supplied) the function to call after writing
 log messages to the log file.
 
+``setSameMessageLimits(timeout, countMax)``
+"""""""""""""""""""""""""""""""""""""""""""
+
+Set limits for same successive log messages.
+
+**timeout** is the time frame 
+
 ``debug(self, msg, *args, **kwargs)``
 """""""""""""""""""""""""""""""""""""
 
@@ -92,7 +115,7 @@ Log error message.
 ``fatal(self, msg, *args, **kwargs)``
 """""""""""""""""""""""""""""""""""""
 
-Log fata/critical message.
+Log fatal/critical message.
 
 ``exception(self, msg, *args, **kwargs)``
 """""""""""""""""""""""""""""""""""""""""
