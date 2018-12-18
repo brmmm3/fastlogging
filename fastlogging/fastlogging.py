@@ -13,28 +13,6 @@ import traceback
 from collections import deque
 from threading import Thread, Timer, Event, Lock
 
-from . import NOLOG, FATAL, ERROR, WARNING, INFO, DEBUG, EXCEPTION, LOG2SYM
-
-try:
-    from colorama import init as initColorama, Fore, Style
-    initColorama()
-    NORMAL = Style.RESET_ALL
-    BRIGHT = Style.BRIGHT
-    WHITE = Fore.WHITE
-    RED = Fore.RED
-    YELLOW = Fore.YELLOW
-    GREEN = Fore.GREEN
-    BRIGHTRED = BRIGHT + RED
-    BRIGHTYELLOW = BRIGHT + YELLOW
-    BRIGHTGREEN = BRIGHT + GREEN
-
-    LVL2COL = {FATAL : BRIGHTRED, ERROR : RED, WARNING : BRIGHTYELLOW,
-               INFO: BRIGHTGREEN, DEBUG: WHITE}
-except ImportError:
-    NORMAL = ""
-    BRIGHTRED = ""
-
-    LVL2COL = {FATAL : "", ERROR : "", WARNING : "", INFO : "", DEBUG : ""}
 
 #c cdef time_time, time_strftime, time_localtime, path_join
 time_time = time.time
@@ -51,7 +29,71 @@ def Shutdown(now=True):
 atexit.register(Shutdown)
 
 
-domains = {}            # Dictionary holding all Logger instances for the configured domains
+domains = {}  # Dictionary holding all Logger instances for the configured domains
+
+# Log-Levels
+EXCEPTION = 60
+CRITICAL = 50
+FATAL = CRITICAL
+ERROR = 40
+WARNING = 30
+WARN = WARNING
+INFO = 20
+DEBUG = 10
+NOTSET = 0
+
+LOG2SSYM = {EXCEPTION: "EXC", FATAL: "FAT", ERROR: "ERR", WARNING: "WRN", INFO: "INF", DEBUG: "DBG"}
+
+LOG2SYM = {EXCEPTION: "EXCEPT ", FATAL: "FATAL  ", ERROR: "ERROR  ", WARNING: "WARNING", INFO: "INFO   ",
+           DEBUG: "DEBUG  "}
+
+try:
+    # noinspection PyUnresolvedReferences,PyPep8Naming
+    from colorama import init as initColorama, Fore, Style
+    initColorama()
+
+    class Colors:
+        RESETALL = Style.RESET_ALL
+        NORMAL = Style.NORMAL
+        BRIGHT = Style.BRIGHT
+        DARKWHITE = Fore.WHITE
+        DARKRED = Fore.RED
+        DARKMAGENTA = Fore.MAGENTA
+        DARKYELLOW = Fore.YELLOW
+        DARKCYAN = Fore.CYAN
+        DARKGREEN = Fore.GREEN
+        DARKORANGE = chr(27) + "[50m"
+        WHITE = Style.BRIGHT + DARKWHITE
+        RED = Style.BRIGHT + DARKRED
+        MAGENTA = Style.BRIGHT + DARKMAGENTA
+        GREEN = Style.BRIGHT + DARKGREEN
+        YELLOW = Style.BRIGHT + DARKYELLOW
+        CYAN = Style.BRIGHT + DARKCYAN
+        ORANGE = Style.BRIGHT + DARKORANGE
+
+except ImportError:
+
+    class Colors:
+        RESETALL = ""
+        NORMAL = ""
+        BRIGHT = ""
+        DARKWHITE = ""
+        DARKRED = ""
+        DARKMAGENTA = ""
+        DARKYELLOW = ""
+        DARKCYAN = ""
+        DARKGREEN = ""
+        DARKORANGE = ""
+        WHITE = ""
+        RED = ""
+        MAGENTA = ""
+        GREEN = ""
+        YELLOW = ""
+        CYAN = ""
+        ORANGE = ""
+
+
+LVL2COL = {FATAL: Colors.RED, ERROR: Colors.DARKRED, WARNING: Colors.YELLOW, INFO: Colors.GREEN, DEBUG: Colors.WHITE}
 
 
 def Rotate():
@@ -66,9 +108,9 @@ def Rotate():
 class LastMessage(object):
 
     def __init__(self, key, cnt, entry):
-        self.key = None
-        self.cnt = 1
-        self.entry = None
+        self.key = key
+        self.cnt = cnt
+        self.entry = entry
 
 
 class CommonConfig(object):
@@ -85,19 +127,21 @@ class Logger(object):
 
     backlog = None
     dateFmt = "%y.%m.%d %H:%M:%S"
-    cbMessageKey = None     # Custom log messages key calculation callback function
-    cbFormatter = None      # Custom log messages formatter callback function
-    cbWriter = None         # Custom log messages writer callback function
-    colors = False          # Enable/Disable colored logging to console
-    compress = None         # ( CompressorInstance, CompressedFileExtension )
-    useThreads = False      # Write log messages in main thread or in background thread
+    cbMessageKey = None    # Custom log messages key calculation callback function
+    cbFormatter = None     # Custom log messages formatter callback function
+    cbWriter = None        # Custom log messages writer callback function
+    colors = False         # Enable/Disable colored logging to console
+    compress = None        # (CompressorInstance, CompressedFileExtension)
+    useThreads = False     # Write log messages in main thread or in background thread
     encoding = None
-    sameMsgTimeout = 30.0   # Timeout for same log messages in a row
-    sameMsgCountMax = 0     # Maximum counter value for same log messages in a row
+    sameMsgTimeout = 30.0  # Timeout for same log messages in a row
+    sameMsgCountMax = 0    # Maximum counter value for same log messages in a row
     thrConsoleLogger = None
+    console = False        # Default console setting
+    indent = None          # Default indent setting
+    consoleLock = None     # An optional lock for console logging
 
-    def __init__(self, domain, level, pathName, maxSize, backupCnt, console,
-                 indent=None, server=None, connect=None):
+    def __init__(self, domain, level, pathName, maxSize, backupCnt, console, indent=None, server=None, connect=None):
         if (maxSize < 0) or (backupCnt < 0) or ((maxSize > 0) and (backupCnt == 0)):
             raise ValueError("Invalid maxSize or backupCnt")
         self.domain = domain
@@ -110,12 +154,12 @@ class Logger(object):
         self.buf = []
         self.size = 0
         self.pos = 0
-        self.__console = console
-        self.__indent_offset = 0 if indent is None else indent[0]
-        self.__indent_inc = 0 if indent is None else indent[1]
-        self.__indent_max = 0 if indent is None else indent[2]
-        self.__thrTimer = None
-        self.__thrLogger = None
+        self._console = console
+        self._indent_offset = 0 if indent is None else indent[0]
+        self._indent_inc = 0 if indent is None else indent[1]
+        self._indent_max = 0 if indent is None else indent[2]
+        self._thrTimer = None
+        self._thrLogger = None
         self.stopped = False
         if pathName is not None and os.path.isdir(os.path.dirname(pathName)):
             for logger in domains.values():
@@ -128,12 +172,11 @@ class Logger(object):
                 self.F = open(pathName, "a", encoding=Logger.encoding)
                 self.pos = self.F.tell()
                 if Logger.useThreads:
-                    self.__thrLogger = Thread(target=self.__logThread, daemon=True,
-                                              name="LogThread_%s" % domain)
-                    self.__thrLogger.start()
+                    self._thrLogger = Thread(target=self.__logThread, daemon=True, name=f"LogThread_{domain}")
+                    self._thrLogger.start()
         if Logger.useThreads and Logger.thrConsoleLogger is None:
             import fastlogging.console
-            Logger.thrConsoleLogger = fastlogging.console.ConsoleLogger()
+            Logger.thrConsoleLogger = fastlogging.console.ConsoleLogger(Logger.consoleLock)
             Logger.thrConsoleLogger.start()
         if server is not None:
             import fastlogging.network
@@ -160,6 +203,9 @@ class Logger(object):
     def setLevel(self, level):
         self.level = level
 
+    def setConsole(self, console):
+        self._console = console
+
     @staticmethod
     def setBacklog(size):
         if size > 0:
@@ -170,19 +216,25 @@ class Logger(object):
         else:
             Logger.backlog = None
 
-    def __log(self, level, msg, args, kwargs):
+    def __log(self, level, msg, args, kwargs, domain=None, log_time=None):
         if self.stopped:
             raise RuntimeError("Logger already stopped")
         if args:
             msg = msg % args
-        if not Logger.useThreads or self.__thrLogger is None:
-            if Logger.sameMsgCountMax > 0:
-                self.__logEntry((time_time(), self.domain, level, msg, kwargs))
-            else:
-                self._logMessage(None, (time_time(), self.domain, level, msg, kwargs), 0)
-        else:
-            self.common.queue.append((time_time(), self.domain, level, msg, kwargs))
+        if domain is None:
+            domain = self.domain
+        if log_time is None:
+            log_time = time_time()
+        if Logger.useThreads or self._thrLogger is not None:
+            self.common.queue.append((log_time, domain, level, msg, kwargs))
             self.common.evtQueue.set()
+        elif Logger.sameMsgCountMax > 0:
+            self.__logEntry((log_time, domain, level, msg, kwargs))
+        else:
+            self._logMessage(None, (log_time, domain, level, msg, kwargs), 0)
+
+    def logEntry(self, log_time, domain, level, msg, kwargs):
+        self.__log(level, msg, None, kwargs, domain, log_time)
 
     def log(self, level, msg, *args, **kwargs):
         self.__log(level, msg, args, kwargs)
@@ -217,13 +269,13 @@ class Logger(object):
             self.__log(EXCEPTION, msg, args, kwargs)
 
     def stop(self, now=False):
-        if self.__thrTimer is not None:
-            self.__thrTimer.cancel()
-            self.__thrTimer.join()
-            self.__thrTimer = None
+        if self._thrTimer is not None:
+            self._thrTimer.cancel()
+            self._thrTimer.join()
+            self._thrTimer = None
             self._logMessage(self._lastMsg.key, self._lastMsg.entry, self._lastMsg.cnt)
         self.stopNetwork()
-        if self.__thrLogger is None and self.F is not None:
+        if self._thrLogger is None and self.F is not None:
             self.F.flush()
             self.F.close()
             self.F = None
@@ -234,9 +286,9 @@ class Logger(object):
         self.stopped = True
 
     def join(self):
-        if self.__thrLogger is not None:
-            self.__thrLogger.join()
-            self.__thrLogger = None
+        if self._thrLogger is not None:
+            self._thrLogger.join()
+            self._thrLogger = None
         del domains[self.domain]
         if not domains and Logger.thrConsoleLogger is not None:
             Logger.thrConsoleLogger.append(None)
@@ -250,7 +302,7 @@ class Logger(object):
     def flush(self):
         if hasattr(self, "client"):
             self.client.evtSent.wait()
-        if self.__thrLogger is None and self.F is not None:
+        if self._thrLogger is None and self.F is not None:
             self.F.flush()
 
     def __rotate(self):
@@ -262,16 +314,16 @@ class Logger(object):
         dirName, logFileName = os.path.split(pathName)
         zExt = "" if Logger.compress is None else Logger.compress[1]
         fileNames = {fileName for fileName in os.listdir(dirName) if fileName.startswith(logFileName)}
+        # noinspection PyBroadException
         try:
             for cnt in range(self.common.backupCnt, 1, -1):
-                srcFileName = "%s.%d%s" % (logFileName, cnt - 1, zExt)
+                srcFileName = f"{logFileName}.{cnt - 1}{zExt}"
                 if srcFileName not in fileNames:
                     continue
-                os.replace(path_join(dirName, srcFileName),
-                           path_join(dirName, "%s.%d%s" % (logFileName, cnt, zExt)))
+                os.replace(path_join(dirName, srcFileName), path_join(dirName, f"{logFileName}.{cnt}{zExt}"))
         except:
             pass
-        dstFileName = "%s.1%s" % (logFileName, zExt)
+        dstFileName = f"{logFileName}.1{zExt}"
         if Logger.compress is None:
             os.replace(pathName, path_join(dirName, dstFileName))
         else:
@@ -280,11 +332,14 @@ class Logger(object):
             os.remove(pathName)
         self.F = open(pathName, "a", encoding=Logger.encoding)
 
-    def rotate(self):
+    def rotate(self, bWait=False):
         if self.F is not None:
             if Logger.useThreads:
                 self.common.evtRotate.set()
                 self.common.evtQueue.set()
+                if bWait:
+                    while self.common.evtQueue.is_set():
+                        time.sleep(0.01)
             else:
                 self.__rotate()
 
@@ -301,45 +356,45 @@ class Logger(object):
 
     def _logMessage(self, key, entry, cnt):
         # entry = (logTime, domain, level, msg, kwargs)
-        if Logger.backlog is not None:
-            Logger.backlog.append(entry)
-        logTime, _, level, msg, kwargs = entry  # logTime, domain, level, msg, kwargs
+        logTime, domain, level, msg, kwargs = entry  # logTime, domain, level, msg, kwargs
         if Logger.cbFormatter is None:
             sTime = time_strftime(Logger.dateFmt, time_localtime(logTime))
-            if self.__indent_inc > 0:
-                depth = -self.__indent_offset
+            if self._indent_inc > 0:
+                depth = -self._indent_offset
+                # noinspection PyProtectedMember
                 frame = sys._getframe(3).f_back
                 while frame:
                     frame = frame.f_back
                     depth += 1
                 if depth > 0:
-                    msg = " " * min(depth * self.__indent_inc, self.__indent_max) + msg
+                    msg = " " * min(depth * self._indent_inc, self._indent_max) + msg
             if "exc_info" in kwargs:
-                message = "%s: %s: %s\n%s" % (sTime, LOG2SYM[level], msg, kwargs["exc_info"])
+                message = f"{sTime}: {domain}: {LOG2SYM[level]}: {msg}\n{kwargs['exc_info']}"
             else:
-                message = "%s: %s: %s" % (sTime, LOG2SYM[level], msg)
+                message = f"{sTime}: {domain}: {LOG2SYM[level]}: {msg}"
         else:
             message = Logger.cbFormatter(self, entry)
         if key is not None:
             if cnt > 0:
-                message = "%d times: %s" % (cnt, message)
+                message = f"{cnt} times: {message}"
             self._lastMsg.key = key
             self._lastMsg.cnt = 1
             self._lastMsg.entry = entry
+        if Logger.backlog is not None:
+            Logger.backlog.append(entry)
+        # noinspection PyBroadException
         try:
             if self.F is not None:
                 size = len(message) + 1
                 with self.lock:
                     self.buf.append(message + "\n")
                     self.size += size
-                maxSize = self.common.maxSize
-                if maxSize == 0:
+                if self.common.maxSize == 0:
                     if (self.size >= 4096) or not Logger.useThreads:
                         self.__writePending()
-                    return
                 else:
                     self.pos += size
-                    if self.pos >= maxSize:
+                    if self.pos >= self.common.maxSize:
                         if Logger.useThreads:
                             self.common.evtRotate.set()
                         else:
@@ -347,17 +402,21 @@ class Logger(object):
         except:
             errMsg = traceback.format_exc()
             if Logger.backlog is not None:
-                Logger.backlog.append(errMsg)
-            print("%s%s%s" % (BRIGHTRED, errMsg, NORMAL), file=sys.stderr)
-        if self.__console or kwargs.get("console", False):
+                Logger.backlog.append((logTime, domain, FATAL, errMsg, None))
+            print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=sys.stderr)
+        if self._console or kwargs.get("console", False):
             if Logger.colors:
                 if "color" in kwargs:
                     color = kwargs["color"]
                 else:
                     color = LVL2COL.get(level, FATAL)
-                message = "%s%s%s" % (color, message, NORMAL)
+                message = f"{color}{message}{Colors.RESETALL}"
             if Logger.thrConsoleLogger is None:
-                print(message, file=sys.stdout if level < ERROR else sys.stderr)
+                if Logger.consoleLock is None:
+                    print(message, file=sys.stdout if level < ERROR else sys.stderr)
+                else:
+                    with Logger.consoleLock:
+                        print(message, file=sys.stdout if level < ERROR else sys.stderr)
             else:
                 Logger.thrConsoleLogger.append((level, message))
         if hasattr(self, "client"):
@@ -373,15 +432,16 @@ class Logger(object):
         if (key == _lastMsg.key) and (_lastMsg.cnt < Logger.sameMsgCountMax):
             _lastMsg.cnt += 1
             _lastMsg.entry = entry
-            if self.__thrTimer is None:
-                self.__thrTimer = Timer(Logger.sameMsgTimeout, self._logMessage, args=(key, entry, 0))
-                self.__thrTimer.start()
-        elif self.__thrTimer is None:
+            if self._thrTimer is None:
+                # noinspection PyTypeChecker
+                self._thrTimer = Timer(Logger.sameMsgTimeout, self._logMessage, args=(key, entry, 0))
+                self._thrTimer.start()
+        elif self._thrTimer is None:
             self._logMessage(key, entry, 0)
         else:
-            self.__thrTimer.cancel()
-            self.__thrTimer.join()
-            self.__thrTimer = None
+            self._thrTimer.cancel()
+            self._thrTimer.join()
+            self._thrTimer = None
             self._logMessage(key, _lastMsg.entry, _lastMsg.cnt)
             self._logMessage(key, entry, 0)
 
@@ -407,9 +467,10 @@ class Logger(object):
                 common_evtQueue.wait()
                 common_evtQueue.clear()
                 if common_evtRotate.is_set():
-                    common_evtRotate.clear()
                     self.__rotate()
+                    common_evtRotate.clear()
                 continue
+            # noinspection PyBroadException
             try:
                 if Logger.sameMsgCountMax > 0:
                     self.__logEntry(entry)
@@ -418,14 +479,28 @@ class Logger(object):
             except:
                 errMsg = traceback.format_exc()
                 if Logger.backlog is not None:
-                    Logger.backlog.append(errMsg)
-                print("%s%s%s" % (BRIGHTRED, errMsg, NORMAL), file=sys.stderr)
+                    Logger.backlog.append((entry[0], entry[1], FATAL, errMsg, None))
+                print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=sys.stderr)
 
 
-def GetLogger(domain=None, level=NOLOG, pathName=None, maxSize=0, backupCnt=0, console=False,
-              indent=None, server=None, connect=None):
+def Remove(domain=None, now=False):
+    if domain is None:
+        domain = "root"
+    if domain in domains:
+        domains[domain].stop(now)
+        del domains[domain]
+        return True
+    return False
+
+
+def GetLogger(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, console=None,
+              indent=True, server=None, connect=None):
     if not domains:
-        print("Warning: %s: LogInit should be called first!" % domain)
+        print(f"Warning: {domain}: LogInit should be called first!")
+    if console is None:
+        console = Logger.console
+    if indent is True:
+        indent = Logger.indent
     if domain is None:
         domain = "root"
     if domain in domains:
@@ -438,19 +513,21 @@ def GetLogger(domain=None, level=NOLOG, pathName=None, maxSize=0, backupCnt=0, c
     return logger
 
 
-def LogInit(domain=None, level=NOLOG, pathName=None, maxSize=0, backupCnt=0, console=False,
+def LogInit(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, console=False,
             colors=False, compress=None, useThreads=False, encoding=None, backlog=0,
-            indent=None, server=None, connect=None):
+            indent=None, server=None, connect=None, consoleLock=None):
     if domain is None:
         domain = "root"
     Logger.colors = colors
     Logger.compress = compress
     Logger.useThreads = useThreads
     Logger.encoding = encoding
+    Logger.console = console
+    Logger.indent = indent
     Logger.setBacklog(backlog)
+    Logger.consoleLock = consoleLock
     domains[domain] = None
     logger = GetLogger(domain, level, pathName, maxSize, backupCnt, console, indent, server, connect)
-    if colors and (NORMAL == ""):
+    if colors and (Colors.RESETALL == ""):
         logger.warning("Module colorama not installed! Colored log not available")
     return logger
-

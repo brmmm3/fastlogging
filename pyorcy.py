@@ -4,11 +4,14 @@ import re
 import os
 import importlib
 import inspect
-import pyximport; pyximport.install()
+import pyximport
+
+pyximport.install()
 
 USE_CYTHON = True
 COMPILE = True
 DEBUG = True
+
 
 def extract_cython(path_in, force=False, debug=True):
     """Extract cython code from the .py file. The script is called by the
@@ -21,8 +24,7 @@ def extract_cython(path_in, force=False, debug=True):
         raise ValueError("%s is not a python file" % path_in)
     
     path_out = path_in.replace('.py', '.pyx')
-    if (not force and os.path.exists(path_out)
-        and os.path.getmtime(path_out) >= os.path.getmtime(path_in)):
+    if not force and os.path.exists(path_out) and os.path.getmtime(path_out) >= os.path.getmtime(path_in):
         if debug:
             print("File %s already exists" % path_out)
         return
@@ -39,6 +41,7 @@ def extract_cython(path_in, force=False, debug=True):
                 line = re.sub(r'#c ', '', line)
             fobj.write(line + '\n')
 
+
 def import_module(name):
     # XXX: not sure this covers all import possibilities offered by python2
     # and python3
@@ -51,8 +54,9 @@ def import_module(name):
         name_last = '.' + name_last
     return importlib.import_module(name_last, package)
 
+
 def cythonize(func):
-    "function decorator for triggering the pyorcy mechanism"
+    """function decorator for triggering the pyorcy mechanism"""
     # inspect usage found in http://stackoverflow.com/a/7151403
     if COMPILE:
         path = inspect.getframeinfo(inspect.getouterframes(
@@ -67,6 +71,7 @@ def cythonize(func):
         func_cy = getattr(module, func.__name__)
     else:
         func_cy = None
+
     def wrapper(*arg, **kw):
         if USE_CYTHON:
             if func_cy is None:
@@ -77,6 +82,7 @@ def cythonize(func):
         else:
             return func(*arg, **kw)
     return wrapper
+
 
 if __name__ == '__main__':
     extract_cython(sys.argv[1])

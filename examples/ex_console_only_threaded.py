@@ -1,8 +1,8 @@
 
-from fastlogging import WR_THREAD, LogInit
+from fastlogging import LogInit
 
 if __name__ == "__main__":
-    logger = LogInit(console = True, colors = True, write = WR_THREAD)
+    logger = LogInit(console=True, colors=True, useThreads=True)
     logger.debug("This is a debug message.")
     logger.info("This is an info message.")
     logger.warning("This is a warning message.")

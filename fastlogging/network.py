@@ -48,11 +48,13 @@ class LoggingServer(Thread):
             self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.__socket.bind((self.address, self.port))
+            # noinspection PyArgumentList
             self.__socket.listen()
             bAcceptFailed = True
             cbAccept = self.cbAccept
             socket_accept = self.__socket.accept
             while self.__running:
+                # noinspection PyBroadException
                 try:
                     client, (address, port) = socket_accept()
                     bAcceptFailed = False
@@ -71,7 +73,7 @@ class LoggingServer(Thread):
                 with self.__lock:
                     self.__clients[client] = thrClient
         except Exception as exc:
-            self.error = exc
+            self.errors.append(exc)
         for client, thrClient in tuple(self.__clients.items()):
             client.close()
             thrClient.join()
@@ -85,14 +87,16 @@ class LoggingServer(Thread):
             pass
         client_recv = client.recv_into
         buf = bytearray(self.maxMsgSize)
-        view = memoryview(buf) #p
+        view = memoryview(buf)  #p
         #c cdef unsigned char[:] view = buf
         if self.cbAuth is None or self.cbAuth(client, addr, client_recv(self.maxMsgSize)):
+            # noinspection PyBroadException
             try:
                 prefix = socket.gethostbyaddr(addr)[0] + ": "
             except:
                 prefix = addr + ": "
             with client:
+                # noinspection PyProtectedMember
                 logMessage = self.logger._logMessage
                 msgpack_unpackb = msgpack.unpackb
                 time_time = time.time

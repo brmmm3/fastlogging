@@ -9,9 +9,7 @@ import os
 import sys
 # To use a consistent encoding
 from codecs import open
-from os import path, listdir
 import shutil
-from setuptools import find_packages
 try:
     from setuptools import setup
     from setuptools import Extension
@@ -52,6 +50,7 @@ if debug:
     del sys.argv[sys.argv.index("debug")]
 
 
+# noinspection PyPep8Naming
 class build_ext_subclass(build_ext):
 
     def run(self):
@@ -99,7 +98,7 @@ setup(
     long_description_content_type='text/x-rst',
 
     url='https://github.com/brmmm3/fastlogging',
-    download_url = 'https://github.com/brmmm3/fastlogging/releases/download/%s/fastlogging-%s.tar.gz' % (VERSION, VERSION),
+    download_url='https://github.com/brmmm3/fastlogging/releases/download/%s/fastlogging-%s.tar.gz' % (VERSION, VERSION),
 
     author='Martin Bammer',
     author_email='mrbm74@gmail.com',
@@ -128,4 +127,3 @@ setup(
     cmdclass={'build_ext': build_ext_subclass}, install_requires=['Cython'],
     ext_modules=ext_modules
 )
-

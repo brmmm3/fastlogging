@@ -1,18 +1,18 @@
 
 import os
-import sys
 import time
 import logging.handlers
 
 import simplejson as json
 import shutil
-from fastlogging import FATAL, ERROR, WARNING, INFO, DEBUG, LogInit, LOG2SYM, LOG2SSYM, OptimizeObj
+from fastlogging import FATAL, ERROR, WARNING, INFO, DEBUG, LogInit, LOG2SSYM, OptimizeObj
 
 MB = 1024 * 1024
 
 tmpDirName = "C:\\temp" if os.name == 'nt' else "/tmp"
 
 
+# noinspection PyShadowingNames
 def LoggingWork(logger, cnt):
     t1 = time.time()
     for i in range(cnt):
@@ -31,7 +31,9 @@ def LoggingWork(logger, cnt):
         logger.warning("Warning Message %d", i)
         logger.info("Info Message %d", i)
         logger.debug("Debug Message %d", i)
+        # noinspection PyBroadException
         try:
+            # noinspection PyUnusedLocal
             x = 1 / 0
         except:
             logger.exception("EXCEPTION")
@@ -39,8 +41,9 @@ def LoggingWork(logger, cnt):
     print("  dt: %.3f" % dt)
 
 
-def DoLogging(cnt, level = logging.DEBUG, fileName = None, bRotate = False):
-    title = [ LOG2SSYM[level] ]
+# noinspection PyShadowingNames
+def DoLogging(cnt, level=logging.DEBUG, fileName=None, bRotate=False):
+    title = [LOG2SSYM[level]]
     title.append("FILE" if fileName else "NO FILE")
     if bRotate:
         title.append("ROTATE")
@@ -52,7 +55,7 @@ def DoLogging(cnt, level = logging.DEBUG, fileName = None, bRotate = False):
         os.makedirs(dirName)
         pathName = os.path.join(dirName, fileName)
         if bRotate:
-            logHandler = logging.handlers.RotatingFileHandler(pathName, mode = 'a', maxBytes = MB, backupCount = 8)
+            logHandler = logging.handlers.RotatingFileHandler(pathName, mode='a', maxBytes=MB, backupCount=8)
         else:
             logHandler = logging.FileHandler(pathName)
     else:
@@ -72,7 +75,8 @@ def DoLogging(cnt, level = logging.DEBUG, fileName = None, bRotate = False):
     return dt
 
 
-def DoFastLogging(cnt, level = DEBUG, fileName = None, bRotate = False, bThreads = False, compress = None, cbOptimized = None, prefix = None):
+# noinspection PyShadowingNames
+def DoFastLogging(cnt, level=DEBUG, fileName=None, bRotate=False, bThreads=False, compress=None, cbOptimized=None, prefix=None):
     title = []
     if prefix:
         title.append(prefix.upper())
@@ -101,7 +105,7 @@ def DoFastLogging(cnt, level = DEBUG, fileName = None, bRotate = False, bThreads
         pathName = None
     print("fastlogging:", ", ".join(title))
     t1 = time.time()
-    logger = LogInit("main", level, pathName, size, count, False, False, useThreads = bThreads, compress = compress)
+    logger = LogInit("main", level, pathName, size, count, False, False, useThreads=bThreads, compress=compress)
     if cbOptimized is None:
         LoggingWork(logger, cnt)
     else:
@@ -121,25 +125,25 @@ if __name__ == "__main__":
     fastFileName = "logging.log"
     htmlTemplate = open("../doc/template.html").read()
     # Benchmark fastlogging module without threads
-    for title, name, fileName, bRotate in ( ( "No log file", "nolog", None, False ),
-                                            ( "Log file", "log", "logging.log", False ),
-                                            ( "Rotating log file", "rotate", "logging.log", True ) ):
-        dtAll = { "TITLE" : title }
-        for level in ( DEBUG, INFO, WARNING, ERROR, FATAL ):
+    for title, name, fileName, bRotate in (("No log file", "nolog", None, False),
+                                           ("Log file", "log", "logging.log", False),
+                                           ("Rotating log file", "rotate", "logging.log", True)):
+        dtAll = {"TITLE": title}
+        for level in (DEBUG, INFO, WARNING, ERROR, FATAL):
             dts = []
             dts.append(DoLogging(cnt, level, fileName, bRotate))
             dts.append(DoFastLogging(cnt, level, fileName, bRotate))
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, True))
             # Benchmark fastlogging module with AST optimization constants to values conversion
-            LoggingWorkOptCst = OptimizeObj(LoggingWork, "logger", optimize = FATAL, const2value = True)
-            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOptCst, prefix = "CONST2VALUE"))
+            LoggingWorkOptCst = OptimizeObj(LoggingWork, "logger", optimize=FATAL, const2value=True)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOptCst, prefix="CONST2VALUE"))
             # Benchmark fastlogging module with AST optimization level
-            LoggingWorkOpt = OptimizeObj(LoggingWork, "logger", optimize = level)
-            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOpt))
+            LoggingWorkOpt = OptimizeObj(LoggingWork, "logger", optimize=level)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOpt))
             # Benchmark fastlogging module with AST optimization remove
-            LoggingWorkOptRem = OptimizeObj(LoggingWork, "logger", remove = level)
-            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized = LoggingWorkOptRem, prefix = "REMOVE"))
-            dtAll[LOG2SSYM[level]] = ", ".join([ "%.4f" % dt for dt in dts ])
+            LoggingWorkOptRem = OptimizeObj(LoggingWork, "logger", remove=level)
+            dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOptRem, prefix="REMOVE"))
+            dtAll[LOG2SSYM[level]] = ", ".join(["%.4f" % dt for dt in dts])
         with open("../doc/%s.dat" % name, "w") as F:
             F.write(json.dumps(dtAll))
         with open("../doc/%s.html" % name, "w") as F:

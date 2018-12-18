@@ -1,38 +1,37 @@
-# Copyright 2018 Martin Bammer. All Rights Reserved.
-# Licensed under MIT license.
+# The MIT License (MIT)
+# 
+# Copyright (c) <2018> <Martin Bammer, mrbm74 at gmail dot com>
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
 """Implements lightweight and fast logging."""
 
-from __future__ import absolute_import
+from fastlogging.fastlogging import Colors, domains, Logger, GetLogger, LogInit, Remove, Shutdown, \
+    CRITICAL, FATAL, ERROR, WARNING, WARN, INFO, DEBUG, NOTSET, EXCEPTION, LOG2SYM, LOG2SSYM, LVL2COL
+from fastlogging.optimize import OptimizeAst, Optimize, OptimizeObj, OptimizeFile, WritePycFile
 
-import sys
 
-
-__all__ = [ 'Logger', 'GetLogger', 'LogInit', 'Shutdown', 'domains',
-            'NOLOG', 'CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG',
-            'EXCEPTION', 'LOG2SYM', 'LOG2SSYM', 'LVL2COL', 'NORMAL',
-            'OptimizeAst', 'Optimize', 'OptimizeObj', 'OptimizeFile', 'WritePycFile' ]
+__all__ = ['Colors', 'domains', 'Logger', 'GetLogger', 'LogInit', 'Remove', 'Shutdown',
+           'CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG', 'NOTSET',
+           'EXCEPTION', 'LOG2SYM', 'LOG2SSYM', 'LVL2COL',
+           'OptimizeAst', 'Optimize', 'OptimizeObj', 'OptimizeFile', 'WritePycFile']
 
 __author__ = 'Martin Bammer (mrbm74@gmail.com)'
-__status__  = "beta"
+__status__ = "beta"
 
-# Log-Levels
-NOLOG = 100
-CRITICAL = 50
-FATAL = CRITICAL
-ERROR = 40
-WARNING = 30
-WARN = WARNING
-INFO = 20
-DEBUG = 10
-NOTSET = 0
-EXCEPTION = ERROR
-
-LOG2SSYM = {FATAL : "FAT", ERROR : "ERR", WARNING : "WRN",
-            INFO : "INF", DEBUG : "DBG"}
-
-LOG2SYM = {FATAL : "FATAL  ", ERROR : "ERROR  ", WARNING : "WARNING",
-           INFO : "INFO   ", DEBUG : "DEBUG  "}
-
-from fastlogging.fastlogging import NORMAL, LVL2COL, domains, Logger, GetLogger, LogInit, Shutdown
-from fastlogging.optimize import OptimizeAst, Optimize, OptimizeObj, OptimizeFile, WritePycFile

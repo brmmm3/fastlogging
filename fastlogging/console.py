@@ -13,10 +13,11 @@ from . import ERROR
 
 class ConsoleLogger(Thread):
 
-    def __init__(self):
+    def __init__(self, consoleLock):
         super(ConsoleLogger, self).__init__()
         self.name = "LogConsoleThread"
         self.daemon = True
+        self.consoleLock = consoleLock
         self.queue = deque()
         self.evtQueue = Event()
         self.stdOut = sys.stdout
@@ -34,8 +35,12 @@ class ConsoleLogger(Thread):
                 entry = queue_popleft()
                 if entry is None:
                     break
-            except:
+            except IndexError:
                 evtQueue.wait()
                 evtQueue.clear()
                 continue
-            print(entry[1], file=self.stdOut if entry[0] < ERROR else self.stdErr)
+            if self.consoleLock is None:
+                print(entry[1], file=self.stdOut if entry[0] < ERROR else self.stdErr)
+            else:
+                with self.consoleLock:
+                    print(entry[1], file=self.stdOut if entry[0] < ERROR else self.stdErr)
