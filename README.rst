@@ -25,11 +25,15 @@ It comes with the following features:
 
 ::
 
- LOG_FATAL    Log a fatal/critical message. Default color is bright red.
- LOG_ERROR    Log an error message. Default color is red.
- LOG_WARNING  Log a warning message. Default color is bright yellow.
- LOG_INFO     Log an info message. Default color is bright green.
- LOG_DEBUG    Log a debug message. Default color is white.
+ EXCEPTION Log exception messages. In addition to the message text the exception info
+           (output of traceback.format_exc) is logged.
+ CRITICAL  Same as FATAL.
+ FATAL     Log also fatal/critical messages. Default color is bright red.
+ ERROR     Log also error messages. Default color is red.
+ WARNING   Log also warning messages. Default color is bright yellow.
+ INFO      Log also info messages. Default color is bright green.
+ DEBUG     Log also debug messages. Default color is white.
+ NOTSET    All messages are logged.
 
 ``Mappings``
 ************
