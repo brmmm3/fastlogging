@@ -39,7 +39,11 @@ class LoggingServer(Thread):
     def stop(self):
         self.__running = False
         if self.__socket is not None:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((self.address, self.port))
+            sock.close()
             self.__socket.close()
+            self.__socket = None
         self.join()
 
     def run(self):
@@ -57,6 +61,8 @@ class LoggingServer(Thread):
                 # noinspection PyBroadException
                 try:
                     client, (address, port) = socket_accept()
+                    if self.__running is False:
+                        break
                     bAcceptFailed = False
                 except:
                     if bAcceptFailed:
