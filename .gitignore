@@ -1,2 +1,16 @@
 
 \.idea/
+
+dist/
+
+build/
+
+fastlogging\.egg-info/
+
+fastlogging/__pycache__/
+
+*.cpp
+
+*.pyx
+
+__pycache__/
