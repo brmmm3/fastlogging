@@ -132,13 +132,13 @@ class Logger(object):
     cbWriter = None        # Custom log messages writer callback function
     colors = False         # Enable/Disable colored logging to console
     compress = None        # (CompressorInstance, CompressedFileExtension)
-    useThreads = False     # Write log messages in main thread or in background thread
-    encoding = None
+    useThreads = False     # Write log messages in main thread (False) or in background thread (True)
+    encoding = None        # Encoding to use for log files
     sameMsgTimeout = 30.0  # Timeout for same log messages in a row
     sameMsgCountMax = 0    # Maximum counter value for same log messages in a row
-    thrConsoleLogger = None
+    thrConsoleLogger = None  # Console logger thread instance.
     console = False        # Default console setting
-    indent = None          # Default indent setting
+    indent = None          # Message indent settings (offset, inc, max)
     consoleLock = None     # An optional lock for console logging
 
     def __init__(self, domain, level, pathName, maxSize, backupCnt, console, indent=None, server=None, connect=None):
