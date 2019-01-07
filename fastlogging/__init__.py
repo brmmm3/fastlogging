@@ -22,12 +22,12 @@
 
 """Implements lightweight and fast logging."""
 
-from fastlogging.fastlogging import Colors, domains, Logger, GetLogger, LogInit, Remove, Shutdown, \
+from fastlogging.fastlogging import Colors, domains, Logger, GetLogger, LogInit, Remove, Rotate, Shutdown, \
     CRITICAL, FATAL, ERROR, WARNING, WARN, INFO, DEBUG, NOTSET, EXCEPTION, LOG2SYM, LOG2SSYM, LVL2COL
 from fastlogging.optimize import OptimizeAst, Optimize, OptimizeObj, OptimizeFile, WritePycFile
 
 
-__all__ = ['Colors', 'domains', 'Logger', 'GetLogger', 'LogInit', 'Remove', 'Shutdown',
+__all__ = ['Colors', 'domains', 'Logger', 'GetLogger', 'LogInit', 'Remove', 'Rotate', 'Shutdown',
            'CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'WARN', 'INFO', 'DEBUG', 'NOTSET',
            'EXCEPTION', 'LOG2SYM', 'LOG2SSYM', 'LVL2COL',
            'OptimizeAst', 'Optimize', 'OptimizeObj', 'OptimizeFile', 'WritePycFile']
