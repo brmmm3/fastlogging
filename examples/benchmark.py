@@ -117,13 +117,13 @@ def DoFastLogging(cnt, level=DEBUG, fileName=None, bRotate=False, bThreads=False
 
 
 if __name__ == "__main__":
-    import zstd
-    ZC = zstd.ZstdCompressor()
+    import zstandard as zstd
+    ZC = zstd.ZstdCompressor(level=14)
     cnt = 5000
     print("cnt:", cnt)
     fileName = "logging.log"
     fastFileName = "logging.log"
-    htmlTemplate = open("../doc/template.html").read()
+    htmlTemplate = open("../doc/benchmarks/template.html").read()
     # Benchmark fastlogging module without threads
     for title, name, fileName, bRotate in (("No log file", "nolog", None, False),
                                            ("Log file", "log", "logging.log", False),
@@ -144,9 +144,9 @@ if __name__ == "__main__":
             LoggingWorkOptRem = OptimizeObj(LoggingWork, "logger", remove=level)
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOptRem, prefix="REMOVE"))
             dtAll[LOG2SSYM[level]] = ", ".join(["%.4f" % dt for dt in dts])
-        with open("../doc/%s.dat" % name, "w") as F:
+        with open("../doc/benchmarks/%s.dat" % name, "w") as F:
             F.write(json.dumps(dtAll))
-        with open("../doc/%s.html" % name, "w") as F:
+        with open("../doc/benchmarks/%s.html" % name, "w") as F:
             F.write(htmlTemplate % dtAll)
     # Benchmark fastlogging module with threads
-    #DoFastLogging(cnt, FATAL, fastFileName, bThreads = True)
+    DoFastLogging(cnt, FATAL, fastFileName, bThreads=True)
