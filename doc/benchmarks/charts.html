@@ -1,0 +1,56 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging AST opt CONST', 'fastlogging AST opt LEVEL', 'fastlogging AST opt REMOVE'],
+          ['DEBUG', 2.8058, 0.5732, 1.2543, 0.5460, 0.5610, 0.4713],
+          ['INFO', 3.0840, 0.5128, 1.0910, 0.4692, 0.4766, 0.3922],
+          ['WARNING', 3.0425, 0.4408, 0.9383, 0.3870, 0.3983, 0.3124],
+          ['ERROR', 2.6723, 0.3707, 0.6988, 0.3115, 0.3201, 0.2306],
+          ['FATAL', 1.2337, 0.2704, 0.3495, 0.2372, 0.2378, 0.1415]
+        ]);
+
+        var options = {
+          chart: {
+            title: 'Log file',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+
+        var chart = new google.charts.Bar(document.getElementById('log_barchart'));
+
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+
+        var data = google.visualization.arrayToDataTable([
+          ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging AST opt CONST', 'fastlogging AST opt LEVEL', 'fastlogging AST opt REMOVE'],
+          ['DEBUG', 6.7532, 0.4985, 1.2690, 0.4709, 0.4671, 0.3997],
+          ['INFO', 7.3927, 0.4296, 1.1657, 0.4035, 0.4155, 0.3383],
+          ['WARNING', 7.2288, 0.3753, 0.9886, 0.3763, 0.3411, 0.2723],
+          ['ERROR', 6.0754, 0.3306, 0.7696, 0.2956, 0.2998, 0.2140],
+          ['FATAL', 2.9709, 0.2573, 0.4505, 0.2088, 0.2091, 0.1305]
+        ]);
+
+        var options = {
+          chart: {
+            title: 'Rotating log file',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+
+        var chart = new google.charts.Bar(document.getElementById('rotate_barchart'));
+
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+    </script>
+  </head>
+  <body>
+    <div id="log_barchart" style="width: 900px; height: 500px;"></div>
+    <br />
+    <div id="rotate_barchart" style="width: 900px; height: 500px;"></div>
+  </body>
+</html>
