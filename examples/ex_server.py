@@ -14,10 +14,7 @@ if __name__ == "__main__":
     logger.debug("This is a debug message.")
     logger.info("This is an info message.")
     logger.warning("This is a warning message.")
-    try:
-        time.sleep(15)
-    except:
-        pass
+    time.sleep(15)
     print("Shutdown")
     logger.info("Shutdown logging.")
     logger.shutdown()
