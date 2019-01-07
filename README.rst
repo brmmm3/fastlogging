@@ -79,6 +79,8 @@ And now the third example connects to the log server and sends 300000 messages.
     time.sleep(10.0)
     logger.shutdown()
 
+The messages are sent in blocks to improve speed.
+
 Optimzing for speed
 -------------------
 
@@ -120,6 +122,8 @@ Benchmarks
 ----------
 
 The following benchmarks were measured on Ubuntu 18.10 with a Ryzen 7 CPU and an SSD.
+
+You can see that ``fastlogging`` is **~5x** faster when rotating is disabled and **>13x** faster in case of log rotating.
 
 .. raw:: html
    :file: doc/benchmarks/charts.html
