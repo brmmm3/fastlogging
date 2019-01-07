@@ -125,6 +125,12 @@ The following benchmarks were measured on Ubuntu 18.10 with a Ryzen 7 CPU and an
 
 You can see that ``fastlogging`` is **~5x** faster when rotating is disabled and **>13x** faster in case of log rotating.
 
-.. raw:: html
-   :file: doc/benchmarks/charts.html
 
+
+.. figure:: doc/benchmarks/log.png
+
+   Benchmark results with a single log files
+
+.. figure:: doc/benchmarks/rotate.png
+
+   Benchmark results with rotating log files

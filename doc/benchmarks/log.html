@@ -1,3 +1,4 @@
+<meta charset="UTF-8">
 <html>
   <head>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -23,6 +24,11 @@
         };
 
         var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+        google.visualization.events.addListener(chart, 'ready', function () {
+                barchart_material.innerHTML = '<img src="' + chart.getImageURI() + '">';
+                console.log(barchart_material.innerHTML);
+              });
 
         chart.draw(data, google.charts.Bar.convertOptions(options));
       }
