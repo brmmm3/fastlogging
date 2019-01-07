@@ -33,22 +33,23 @@ debug = "debug" in sys.argv
 if debug:
     del sys.argv[sys.argv.index("debug")]
 nocython = "nocython" in sys.argv
-if nocython:
-    del sys.argv[sys.argv.index("nocython")]
-    install_requires = []
-    cmdclass = {}
-    packages = [PKGNAME]
-    ext_modules = None
-else:
-    from Cython.Distutils import build_ext
-    from Cython.Build import cythonize
-    import Cython.Compiler.Version
 
+if not nocython:
+    try:
+        from Cython.Distutils import build_ext
+        from Cython.Build import cythonize
+        import Cython.Compiler.Version
+    except ImportError:
+        print("Warning: cython package not installing! Creating fastlogging package in pure python mode.")
+        nocython = True
+
+if not nocython:
     from pyorcy import extract_cython
 
     extract_cython(os.path.join(PKGDIR, 'fastlogging.py'))
     extract_cython(os.path.join(PKGDIR, 'network.py'))
 
+    # noinspection PyUnboundLocalVariable
     print("building with Cython " + Cython.Compiler.Version.version)
 
     # noinspection PyPep8Naming
@@ -77,7 +78,6 @@ else:
                         extension.extra_compile_args = ["-O2", "-D__PYX_FORCE_INIT_THREADS=1"]
             build_ext.build_extensions(self)
 
-
     cythonize("fastlogging/*.pyx", language_level=3, annotate=annotate,
               language="c++", exclude=["setup.py"])
     install_requires=['Cython']
@@ -92,6 +92,13 @@ else:
                   language="c++")
         for module_name in MODULES]
 
+
+if nocython:
+    del sys.argv[sys.argv.index("nocython")]
+    install_requires = []
+    cmdclass = {}
+    packages = [PKGNAME]
+    ext_modules = None
 
 # Get the long description from the README file
 with open(os.path.join(BASEDIR, 'README.rst'), encoding='utf-8') as F:
