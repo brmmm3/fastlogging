@@ -2,19 +2,16 @@
 import os
 import time
 
-from fastlogging import LogInit, DEBUG
+from fastlogging import LogInit
 
-
-if __name__ == "__main__":
-    addr = "127.0.0.1"
-    port = 12345
-    pathName = "C:/temp/server.log" if os.name == 'nt' else "/tmp/server.log"
-    logger = LogInit(pathName=pathName, level=DEBUG, console=False, colors=True, server=(addr, port))
-    logger.info("Logging started.")
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    time.sleep(15)
-    print("Shutdown")
-    logger.info("Shutdown logging.")
-    logger.shutdown()
+addr = "127.0.0.1"
+port = 12345
+pathName = "C:/temp/server.log" if os.name == 'nt' else "/tmp/server.log"
+logger = LogInit(pathName=pathName, server=(addr, port))
+logger.info("Logging started.")
+logger.debug("This is a debug message.")
+logger.info("This is an info message.")
+logger.warning("This is a warning message.")
+time.sleep(15)
+logger.info("Shutdown logging.")
+logger.shutdown()
