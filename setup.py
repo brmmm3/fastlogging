@@ -20,7 +20,7 @@ except ImportError:
 BASEDIR = os.path.dirname(__file__)
 PKGNAME = 'fastlogging'
 PKGDIR = os.path.join(BASEDIR, PKGNAME)
-VERSION = "0.9.0"
+VERSION = "0.9.1"
 
 if os.path.exists("build"):
     shutil.rmtree("build")
@@ -111,7 +111,7 @@ if annotate:
 setup(
     name='fastlogging',
     version=VERSION,
-    description='An efficient and leightweight logging module.',
+    description='A faster replacement of the standard logging module.',
     long_description=long_description,
     long_description_content_type='text/x-rst',
 
