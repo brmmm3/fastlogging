@@ -34,13 +34,15 @@ if debug:
     del sys.argv[sys.argv.index("debug")]
 nocython = "nocython" in sys.argv
 
-if not nocython:
+if nocython:
+    del sys.argv[sys.argv.index("nocython")]
+else:
     try:
         from Cython.Distutils import build_ext
         from Cython.Build import cythonize
         import Cython.Compiler.Version
     except ImportError:
-        print("Warning: cython package not installing! Creating fastlogging package in pure python mode.")
+        print("Warning: cython package not installed! Creating fastlogging package in pure python mode.")
         nocython = True
 
 if not nocython:
@@ -94,7 +96,6 @@ if not nocython:
 
 
 if nocython:
-    del sys.argv[sys.argv.index("nocython")]
     install_requires = []
     cmdclass = {}
     packages = [PKGNAME]
