@@ -12,6 +12,9 @@ from types import ModuleType
 from fastlogging.fastlogging import DEBUG, INFO, WARNING, ERROR, FATAL
 
 
+optimized = set()
+
+
 class OptimizeAst(ast.NodeTransformer):
 
     def __init__(self, id_, optimize, deoptimize=0, remove=0, const2value=False, value2const=False):
@@ -187,22 +190,13 @@ class OptimizeAst(ast.NodeTransformer):
             orelse=[]), node)
 
 
-def Optimize(id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
-
-    def OptimizeDecorator(code):
-        tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(code)
-        return compile(ast.fix_missing_locations(tree), filename="<function>", mode="exec")
-
-    return OptimizeDecorator
-
-
-def OptimizeObj(obj, id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
+def OptimizeObj(glob, obj, id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
     tree = ast.parse(inspect.getsource(obj))
     tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(tree)
     if inspect.ismodule(obj):
         return compile(ast.fix_missing_locations(tree), filename=obj.__file__, mode="exec")
     module = ModuleType("tempModule")
-    module.__dict__.update(globals())
+    module.__dict__.update(glob)
     exec(compile(ast.fix_missing_locations(tree), filename=obj.__name__, mode="exec"), module.__dict__)
     return getattr(module, obj.__name__)
 
@@ -217,10 +211,24 @@ def OptimizeModule(obj, id_, optimize=0, deoptimize=0, remove=0, const2value=Fal
     return compile(ast.fix_missing_locations(tree), filename=fileName, mode="exec")
 
 
-def OptimizeFile(fileName, id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
+def OptimizeFile(glob, fileName, id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
     tree = ast.parse(open(fileName).read())
     tree = OptimizeAst(id_, optimize, deoptimize, remove, const2value, value2const).visit(tree)
-    return compile(ast.fix_missing_locations(tree), filename=fileName, mode="exec")
+    module = ModuleType("tempModule")
+    module.__dict__.update(glob)
+    exec(compile(ast.fix_missing_locations(tree), filename=fileName, mode="exec"), module.__dict__)
+    return module
+
+
+def Optimize(glob, id_, optimize=0, deoptimize=0, remove=0, const2value=False, value2const=False):
+
+    def OptimizeDecorator(obj):
+        if obj.__name__ in optimized:
+            return obj
+        optimized.add(obj.__name__)
+        return OptimizeObj(glob, obj, id_, optimize, deoptimize, remove, const2value, value2const)
+
+    return OptimizeDecorator
 
 
 def WritePycFile(fileName, code):
