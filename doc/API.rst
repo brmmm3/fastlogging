@@ -57,7 +57,7 @@ Logging class object. It contains the following static member variables::
                         Set (if a callable is supplied) or clear (if None is supplied) the function to call after writing
                         log messages to the log file.
  colors                 Enable/Disable colored logging to console (default False).
- compress = None         # ( CompressorInstance, CompressedFileExtension )
+ compress = None        A tuple with compressor instance and file extension (dfeault None).
  useThreads             Write log messages in main thread (False) or in background thread (True).
  encoding               Encoding to use for log files.
  sameMsgTimeout         Timeout for same log messages in a row (default 30.0 seconds).

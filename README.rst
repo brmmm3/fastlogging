@@ -21,7 +21,26 @@ It comes with the following features:
 
 The API is described `here <doc/API.rst>`_.
 
-Simple usage:
+Installation
+------------
+
+Simply run
+
+.. code-block:: Python
+
+    python setup.py install --user
+
+or create a wheel and install it.
+
+.. code-block:: Python
+
+    python setup.py bdist_wheel
+
+An optimized version of ``fastlogging`` will be installed if package **cython** is installed.
+If you need a pure python version of the ``fastlogging`` module then add option **nocython**.
+
+Usage
+-----
 
 .. code-block:: Python
 
@@ -81,8 +100,8 @@ And now the third example connects to the log server and sends 300000 messages.
 
 The messages are sent in blocks to improve speed.
 
-Optimzing for speed
--------------------
+Optimizing for speed
+--------------------
 
 As you can see in the charts below fastlogging is much faster than the default logging module which comes
 with Python (red bar).
