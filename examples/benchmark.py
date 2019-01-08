@@ -135,13 +135,13 @@ if __name__ == "__main__":
             dts.append(DoFastLogging(cnt, level, fileName, bRotate))
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, True))
             # Benchmark fastlogging module with AST optimization constants to values conversion
-            LoggingWorkOptCst = OptimizeObj(LoggingWork, "logger", optimize=FATAL, const2value=True)
+            LoggingWorkOptCst = OptimizeObj(globals(), LoggingWork, "logger", optimize=level, const2value=True)
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOptCst, prefix="CONST2VALUE"))
             # Benchmark fastlogging module with AST optimization level
-            LoggingWorkOpt = OptimizeObj(LoggingWork, "logger", optimize=level)
+            LoggingWorkOpt = OptimizeObj(globals(), LoggingWork, "logger", optimize=level)
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOpt))
             # Benchmark fastlogging module with AST optimization remove
-            LoggingWorkOptRem = OptimizeObj(LoggingWork, "logger", remove=level)
+            LoggingWorkOptRem = OptimizeObj(globals(), LoggingWork, "logger", remove=level)
             dts.append(DoFastLogging(cnt, level, fileName, bRotate, cbOptimized=LoggingWorkOptRem, prefix="REMOVE"))
             dtAll[LOG2SSYM[level]] = ", ".join(["%.4f" % dt for dt in dts])
         with open("../doc/benchmarks/%s.dat" % name, "w") as F:
