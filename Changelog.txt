@@ -1,3 +1,6 @@
+0.9.1:
+GetLogger: If logger domain already exists do not try to remove domain twice from global domains dict.
+
 0.9.0:
 Add requirements.txt.
 Reduce pep8 findings.

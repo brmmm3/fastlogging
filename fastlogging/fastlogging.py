@@ -505,10 +505,11 @@ def GetLogger(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, 
         domain = "root"
     if domain in domains:
         logger = domains[domain]
-        if logger is not None:
+        if logger is None:
+            del domains[domain]
+        else:
             logger.stop()
             logger.join()
-        del domains[domain]
     logger = domains[domain] = Logger(domain, level, pathName, maxSize, backupCnt, console, indent, server, connect)
     return logger
 
