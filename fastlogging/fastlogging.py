@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018 Martin Bammer. All Rights Reserved.
+# Copyright 2019 Martin Bammer. All Rights Reserved.
 # Licensed under MIT license.
 #cython: language_level=3, boundscheck=False
 
@@ -140,6 +140,8 @@ class Logger(object):
     console = False        # Default console setting
     indent = None          # Message indent settings (offset, inc, max)
     consoleLock = None     # An optional lock for console logging
+    stdout = None
+    stderr = None
 
     def __init__(self, domain, level, pathName, maxSize, backupCnt, console, indent=None, server=None, connect=None):
         if (maxSize < 0) or (backupCnt < 0) or ((maxSize > 0) and (backupCnt == 0)):
@@ -403,7 +405,7 @@ class Logger(object):
             errMsg = traceback.format_exc()
             if Logger.backlog is not None:
                 Logger.backlog.append((logTime, domain, FATAL, errMsg, None))
-            print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=sys.stderr)
+            print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=self.stderr)
         if self._console or kwargs.get("console", False):
             if Logger.colors:
                 if "color" in kwargs:
@@ -413,10 +415,10 @@ class Logger(object):
                 message = f"{color}{message}{Colors.RESETALL}"
             if Logger.thrConsoleLogger is None:
                 if Logger.consoleLock is None:
-                    print(message, file=sys.stdout if level < ERROR else sys.stderr)
+                    print(message, file=self.stdout if level < ERROR else self.stderr)
                 else:
                     with Logger.consoleLock:
-                        print(message, file=sys.stdout if level < ERROR else sys.stderr)
+                        print(message, file=self.stdout if level < ERROR else self.stderr)
             else:
                 Logger.thrConsoleLogger.append((level, message))
         if hasattr(self, "client"):
@@ -480,7 +482,7 @@ class Logger(object):
                 errMsg = traceback.format_exc()
                 if Logger.backlog is not None:
                     Logger.backlog.append((entry[0], entry[1], FATAL, errMsg, None))
-                print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=sys.stderr)
+                print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=self.stderr)
 
 
 def Remove(domain=None, now=False):
@@ -516,7 +518,7 @@ def GetLogger(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, 
 
 def LogInit(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, console=False,
             colors=False, compress=None, useThreads=False, encoding=None, backlog=0,
-            indent=None, server=None, connect=None, consoleLock=None):
+            indent=None, server=None, connect=None, consoleLock=None, stdout=None, stderr=None):
     if domain is None:
         domain = "root"
     Logger.colors = colors
@@ -527,6 +529,8 @@ def LogInit(domain=None, level=NOTSET, pathName=None, maxSize=0, backupCnt=0, co
     Logger.indent = indent
     Logger.setBacklog(backlog)
     Logger.consoleLock = consoleLock
+    Logger.stdout = stdout if stdout is not None else sys.stdout
+    Logger.stderr = stderr if stderr is not None else sys.stderr
     domains[domain] = None
     logger = GetLogger(domain, level, pathName, maxSize, backupCnt, console, indent, server, connect)
     if colors and (Colors.RESETALL == ""):

@@ -20,7 +20,7 @@ except ImportError:
 BASEDIR = os.path.dirname(__file__)
 PKGNAME = 'fastlogging'
 PKGDIR = os.path.join(BASEDIR, PKGNAME)
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 
 if os.path.exists("build"):
     shutil.rmtree("build")
@@ -37,6 +37,7 @@ nocython = "nocython" in sys.argv
 if nocython:
     del sys.argv[sys.argv.index("nocython")]
 else:
+    # noinspection PyUnresolvedReferences
     try:
         from Cython.Distutils import build_ext
         from Cython.Build import cythonize
@@ -45,7 +46,12 @@ else:
         print("Warning: cython package not installed! Creating fastlogging package in pure python mode.")
         nocython = True
 
-if not nocython:
+if nocython:
+    install_requires = []
+    cmdclass = {}
+    packages = [PKGNAME]
+    ext_modules = None
+else:
     from pyorcy import extract_cython
 
     extract_cython(os.path.join(PKGDIR, 'fastlogging.py'))
@@ -82,7 +88,7 @@ if not nocython:
 
     cythonize("fastlogging/*.pyx", language_level=3, annotate=annotate,
               language="c++", exclude=["setup.py"])
-    install_requires=['Cython']
+    install_requires = ['Cython']
     cmdclass = {'build_ext': build_ext_subclass}
 
     MODULES = [filename[:-4] for filename in os.listdir(PKGDIR)
@@ -94,12 +100,6 @@ if not nocython:
                   language="c++")
         for module_name in MODULES]
 
-
-if nocython:
-    install_requires = []
-    cmdclass = {}
-    packages = [PKGNAME]
-    ext_modules = None
 
 # Get the long description from the README file
 with open(os.path.join(BASEDIR, 'README.rst'), encoding='utf-8') as F:

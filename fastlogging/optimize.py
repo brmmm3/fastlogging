@@ -104,14 +104,20 @@ class OptimizeAst(ast.NodeTransformer):
                     kwargs=body.kwargs if hasattr(body, "kwargs") else None))
 
     def visit_If(self, node):
+
+        def visit_children(node_If):
+            children = [self.visit(child) for child in ast.iter_child_nodes(node_If)]
+            node_If.body = [child for child in children[1:] if child is not None]
+            return node_If
+
         # noinspection PyBroadException
         try:
             if (node.test.left.value.id != self.id) or (node.test.left.attr != "level"):
-                return node
+                return visit_children(node)
             if node.body[0].value.func.value.id != self.id:
-                return node
+                return visit_children(node)
         except:
-            return node
+            return visit_children(node)
         body = node.body[0].value
         attr = body.func.attr
         if attr in self.__remove:
@@ -127,7 +133,7 @@ class OptimizeAst(ast.NodeTransformer):
             if level not in self.__level2optimize:
                 if level in self.__level2unoptimize:
                     # Deoptimize -> remove 'if' and 'log' -> 'foo'
-                    return ast.copy_location(self.__expr(level, body_args, body), node)
+                    return visit_children(ast.copy_location(self.__expr(level, body_args, body), node))
             # Optimize
             args = [args] + body_args
         else:
@@ -136,16 +142,16 @@ class OptimizeAst(ast.NodeTransformer):
             if attr not in self.__level2optimize:
                 if attr in self.__level2unoptimize:
                     # Deoptimize
-                    return ast.copy_location(self.__expr(attr, body.args, body), node)
+                    return visit_children(ast.copy_location(self.__expr(attr, body.args, body), node))
                 args = body.args
             else:
                 attr = "log"
                 args = [args] + body.args
         # Optimize
-        return ast.copy_location(ast.If(
+        return visit_children(ast.copy_location(ast.If(
             test=self.__compare(compare),
             body=[self.__expr(attr, args, body)],
-            orelse=[]), node)
+            orelse=[]), node))
 
     def visit_Expr(self, node):
         func = node.value.func
