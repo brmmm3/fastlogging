@@ -12,7 +12,7 @@ import time
 import traceback
 from collections import deque
 from threading import Thread, Timer, Event, Lock
-
+from logging import LogRecord
 
 #c cdef time_time, time_strftime, time_localtime, path_join
 time_time = time.time
@@ -162,6 +162,7 @@ class Logger(object):
         self._indent_max = 0 if indent is None else indent[2]
         self._thrTimer = None
         self._thrLogger = None
+        self._logHandler = []
         self.stopped = False
         if pathName is not None and os.path.isdir(os.path.dirname(pathName)):
             for logger in domains.values():
@@ -217,6 +218,26 @@ class Logger(object):
                 Logger.backlog = deque(Logger.backlog, maxlen=size)
         else:
             Logger.backlog = None
+
+    def addHandler(self, logHandler, bLogRecord=True):
+        """
+        Add a log handler.
+        :param logHandler: Log handler to call
+        :param bLogRecord: If true for every message a LogRecord is created. If false the message string is provided to the log handler.
+        """
+        if not hasattr(logHandler, "level") or not hasattr(logHandler, "emit"):
+            raise ValueError("Invalid log handler")
+        self._logHandler.append((logHandler, bLogRecord))
+
+    def removeHandler(self, logHandler):
+        self._logHandler.remove(logHandler)
+
+    def removeAllLogHandler(self):
+        self._logHandler.clear()
+
+    @property
+    def logHandler(self):
+        return self._logHandler.copy()
 
     def __log(self, level, msg, args, kwargs, domain=None, log_time=None):
         if self.stopped:
@@ -423,6 +444,16 @@ class Logger(object):
                 Logger.thrConsoleLogger.append((level, message))
         if hasattr(self, "client"):
             self.client.log(entry)
+        logRecord = None
+        for logHandler, bLogRecord in self._logHandler:
+            if level >= logHandler.level:
+                if bLogRecord:
+                    if logRecord is None:
+                        # noinspection PyTypeChecker
+                        logRecord = LogRecord(self.domain, level, None, 0, message, None, None)
+                    logHandler.emit(logRecord)
+                else:
+                    logHandler.emit(message)
 
     def __logEntry(self, entry):
         # entry = (logTime, domain, level, msg, kwargs)
