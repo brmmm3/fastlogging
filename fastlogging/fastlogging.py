@@ -157,6 +157,7 @@ class Logger(object):
         self.size = 0
         self.pos = 0
         self._console = console
+        self._consoleLevel = NOTSET  # Default console log level (NOTSET -> Global log level will be used)
         self._indent_offset = 0 if indent is None else indent[0]
         self._indent_inc = 0 if indent is None else indent[1]
         self._indent_max = 0 if indent is None else indent[2]
@@ -208,6 +209,9 @@ class Logger(object):
 
     def setConsole(self, console):
         self._console = console
+
+    def setConsoleLevel(self, level):
+        self._consoleLevel = level
 
     @staticmethod
     def setBacklog(size):
@@ -427,7 +431,19 @@ class Logger(object):
             if Logger.backlog is not None:
                 Logger.backlog.append((logTime, domain, FATAL, errMsg, None))
             print(f"{Colors.RED}{errMsg}{Colors.RESETALL}", file=self.stderr)
-        if self._console or kwargs.get("console", False):
+        if hasattr(self, "client"):
+            self.client.log(entry)
+        logRecord = None
+        for logHandler, bLogRecord in self._logHandler:
+            if level >= logHandler.level:
+                if bLogRecord:
+                    if logRecord is None:
+                        # noinspection PyTypeChecker
+                        logRecord = LogRecord(self.domain, level, None, 0, message, None, None)
+                    logHandler.emit(logRecord)
+                else:
+                    logHandler.emit(message)
+        if (self._console or kwargs.get("console", False)) and (level >= self._consoleLevel):
             if Logger.colors:
                 if "color" in kwargs:
                     color = kwargs["color"]
@@ -442,18 +458,6 @@ class Logger(object):
                         print(message, file=self.stdout if level < ERROR else self.stderr)
             else:
                 Logger.thrConsoleLogger.append((level, message))
-        if hasattr(self, "client"):
-            self.client.log(entry)
-        logRecord = None
-        for logHandler, bLogRecord in self._logHandler:
-            if level >= logHandler.level:
-                if bLogRecord:
-                    if logRecord is None:
-                        # noinspection PyTypeChecker
-                        logRecord = LogRecord(self.domain, level, None, 0, message, None, None)
-                    logHandler.emit(logRecord)
-                else:
-                    logHandler.emit(message)
 
     def __logEntry(self, entry):
         # entry = (logTime, domain, level, msg, kwargs)
