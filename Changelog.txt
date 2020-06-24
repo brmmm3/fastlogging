@@ -1,3 +1,9 @@
+0.9.4:
+Fix MANIFEST.in
+
+0.9.3:
+Add pyorcy.py to source distribution.
+
 0.9.2:
 LogInit: Add 2 new optional arguments stdout and stderr for configuring custom file objects
          for print statments.
