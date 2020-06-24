@@ -1,0 +1,18 @@
+name: Build wheels
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: RalfG/python-wheels-manylinux-build@v0.2.2-manylinux2010_x86_64
+      with:
+        python-versions: 'cp36-cp36m cp37-cp37m'
+        build-requirements: 'cython numpy'
+        system-packages: 'lrzip-devel zlib-devel'
+        package-path: 'my_project'
+        pip-wheel-args: '--no-deps'
