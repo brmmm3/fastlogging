@@ -20,7 +20,7 @@ except ImportError:
 BASEDIR = os.path.dirname(__file__)
 PKGNAME = 'fastlogging'
 PKGDIR = os.path.join(BASEDIR, PKGNAME)
-VERSION = "0.9.2"
+VERSION = "0.9.4"
 
 if os.path.exists("build"):
     shutil.rmtree("build")
