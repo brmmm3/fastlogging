@@ -1,3 +1,7 @@
+from fastlogging import LogInit
+
+logger = LogInit(console=True, colors=True)
+
 
 def bar():
     logger.debug("This is a debug message")
