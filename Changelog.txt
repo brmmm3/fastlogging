@@ -1,3 +1,8 @@
+0.9.5:
+Fix writing to log file when parameter maxSize is non zero.
+Fix writing to log file when parameter pathName just contains a file name.
+Add test program for rotate feature.
+
 0.9.4:
 Fix MANIFEST.in
 

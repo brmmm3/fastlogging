@@ -163,7 +163,8 @@ class Logger(object):
         self._thrTimer = None
         self._thrLogger = None
         self.stopped = False
-        if pathName is not None and os.path.isdir(os.path.dirname(pathName)):
+        dirName = os.path.dirname(pathName)
+        if pathName is not None and os.path.isdir(dirName if dirName else "."):
             for logger in domains.values():
                 if pathName == logger.pathName:
                     common = logger.common
@@ -278,6 +279,7 @@ class Logger(object):
             self._logMessage(self._lastMsg.key, self._lastMsg.entry, self._lastMsg.cnt)
         self.stopNetwork()
         if self._thrLogger is None and self.F is not None:
+            self.__writePending()
             self.F.flush()
             self.F.close()
             self.F = None
@@ -315,7 +317,8 @@ class Logger(object):
         pathName = self.pathName
         dirName, logFileName = os.path.split(pathName)
         zExt = "" if Logger.compress is None else Logger.compress[1]
-        fileNames = {fileName for fileName in os.listdir(dirName) if fileName.startswith(logFileName)}
+        fileNames = {fileName for fileName in os.listdir(dirName if dirName else ".")
+                     if fileName.startswith(logFileName)}
         # noinspection PyBroadException
         try:
             for cnt in range(self.common.backupCnt, 1, -1):
