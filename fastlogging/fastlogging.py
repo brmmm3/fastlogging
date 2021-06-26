@@ -307,6 +307,7 @@ class Logger(object):
         if hasattr(self, "client"):
             self.client.evtSent.wait()
         if self._thrLogger is None and self.F is not None:
+            self.__writePending()
             self.F.flush()
 
     def __rotate(self):
