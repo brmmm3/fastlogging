@@ -158,7 +158,7 @@ jobs:
       - name: install dependencies
         run: |
           pip install --upgrade setuptools pip wheel
-          pip install cibuildwheel=="${{ env.cibuildwheel }}" cython=="${{ env.cython }} colorama"
+          pip install cibuildwheel=="${{ env.cibuildwheel }}" cython=="${{ env.cython }}" colorama
 
       - name: install mac dependencies
         if: startsWith(matrix.os, 'mac')
