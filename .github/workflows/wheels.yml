@@ -1,0 +1,207 @@
+name: Release
+
+on:
+  push:
+  pull_request:
+    paths:
+      - setup.py
+      - .github/workflows/wheels.yml
+
+env:
+  cython: "0.29.23"
+  cibuildwheel: "1.12.0"
+  TWINE_NONINTERACTIVE: "1"
+
+jobs:
+  check-bundle:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: check bundled libzmq checksums
+        run: python -m buildutils.bundle checksums
+
+  sdist:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: install dependencies
+        run: |
+          pip install --upgrade pip build
+          pip install cython=="${{ env.cython }}" colorama
+
+      - name: build sdist
+        run: |
+          python -m build --sdist .
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sdist
+          path: "dist/*.tar.gz"
+          if-no-files-found: error
+
+      - name: Publish to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          pip install twine
+          twine upload --skip-existing dist/*.tar.gz
+
+  wheel:
+    runs-on: ${{ matrix.os }}
+
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.9"
+      CIBW_BUILD_VERBOSITY: "1"
+      CIBW_TEST_REQUIRES: "pytest"
+      CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
+      CIBW_MANYLINUX_X86_64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_MANYLINUX_I686_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_MANYLINUX_AARCH64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
+      CIBW_ARCHS_LINUX: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_ARCHS_MACOS: "${{ matrix.cibw.arch || 'auto' }}"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-10.15
+            name: mac
+
+          - os: macos-10.15
+            name: mac-arm
+            cibw:
+              arch: universal2
+              build: "cp39*"
+
+          - os: ubuntu-20.04
+            name: manylinux1
+            cibw:
+              build: "cp36* cp37*"
+              manylinux_image: manylinux1
+
+          - os: ubuntu-20.04
+            name: manylinux2010
+            cibw:
+              build: "cp38* cp39* pp3*"
+              manylinux_image: manylinux2010
+
+          - os: ubuntu-20.04
+            name: cp36-manylinux_aarch64
+            cibw:
+              build: "cp36*"
+              manylinux_image: manylinux2014
+              arch: aarch64
+
+          - os: ubuntu-20.04
+            name: cp37-manylinux_aarch64
+            cibw:
+              build: "cp37*"
+              manylinux_image: manylinux2014
+              arch: aarch64
+
+          - os: ubuntu-20.04
+            name: cp38-manylinux_aarch64
+            cibw:
+              build: "cp38*"
+              manylinux_image: manylinux2014
+              arch: aarch64
+
+          - os: ubuntu-20.04
+            name: cp39-manylinux_aarch64
+            cibw:
+              build: "cp39*"
+              manylinux_image: manylinux2014
+              arch: aarch64
+
+          - os: windows-2019
+            name: win32
+            architecture: x86
+            cibw:
+              build: "cp*win32"
+
+          - os: windows-2016
+            name: win32-pypy
+            architecture: x86
+            cibw:
+              build: "pp*win32"
+
+          - os: windows-2019
+            name: win_amd64
+            architecture: x64
+            cibw:
+              build: "*win_amd64"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+          architecture: ${{ matrix.architecture }}
+
+      - name: install dependencies
+        run: |
+          pip install --upgrade setuptools pip wheel
+          pip install cibuildwheel=="${{ env.cibuildwheel }}" cython=="${{ env.cython }} colorama"
+
+      - name: install mac dependencies
+        if: startsWith(matrix.os, 'mac')
+        run: |
+          pip install delocate
+
+      - name: install linux dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          pip install auditwheel
+
+      - name: install windows dependencies
+        if: startsWith(matrix.os, 'win')
+        run: |
+          pip install delvewheel==0.0.12
+
+      - name: show environment
+        run: |
+          pip freeze
+
+      - name: list target wheels
+        run: |
+          python -m cibuildwheel . --print-build-identifiers
+
+      - name: compile Cython sources
+        run: |
+          python setup.py cython
+
+      - name: build wheels
+        run: |
+          python -m cibuildwheel .
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels-${{ matrix.name }}
+          path: "wheelhouse/*"
+          if-no-files-found: error
+
+      - name: Publish wheels to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          pip install twine
+          twine upload --skip-existing wheelhouse/*
