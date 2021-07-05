@@ -23,9 +23,6 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: check bundled libzmq checksums
-        run: python -m buildutils.bundle checksums
-
   sdist:
     runs-on: ubuntu-20.04
 
