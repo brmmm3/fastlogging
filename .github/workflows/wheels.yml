@@ -184,7 +184,7 @@ jobs:
 
       - name: compile Cython sources
         run: |
-          python setup.py cython
+          python setup.py build
 
       - name: build wheels
         run: |
