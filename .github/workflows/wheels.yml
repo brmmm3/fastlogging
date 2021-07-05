@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      MACOSX_DEPLOYMENT_TARGET: "10.9"
+      MACOSX_DEPLOYMENT_TARGET: "10.14"
       CIBW_BUILD_VERBOSITY: "1"
       CIBW_TEST_REQUIRES: "pytest"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
@@ -100,45 +100,11 @@ jobs:
               build: "cp38* cp39*"
               manylinux_image: manylinux2010
 
-          - os: ubuntu-20.04
-            name: cp36-manylinux_aarch64
-            cibw:
-              build: "cp36*"
-              manylinux_image: manylinux2014
-              arch: aarch64
-
-          - os: ubuntu-20.04
-            name: cp37-manylinux_aarch64
-            cibw:
-              build: "cp37*"
-              manylinux_image: manylinux2014
-              arch: aarch64
-
-          - os: ubuntu-20.04
-            name: cp38-manylinux_aarch64
-            cibw:
-              build: "cp38*"
-              manylinux_image: manylinux2014
-              arch: aarch64
-
-          - os: ubuntu-20.04
-            name: cp39-manylinux_aarch64
-            cibw:
-              build: "cp39*"
-              manylinux_image: manylinux2014
-              arch: aarch64
-
           - os: windows-2019
             name: win32
             architecture: x86
             cibw:
               build: "cp*win32"
-
-          - os: windows-2016
-            name: win32-pypy
-            architecture: x86
-            cibw:
-              build: "pp*win32"
 
           - os: windows-2019
             name: win_amd64
