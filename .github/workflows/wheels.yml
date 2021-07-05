@@ -72,6 +72,8 @@ jobs:
       CIBW_MANYLINUX_AARCH64_IMAGE: "${{ matrix.cibw.manylinux_image }}"
       CIBW_ARCHS_LINUX: "${{ matrix.cibw.arch || 'auto' }}"
       CIBW_ARCHS_MACOS: "${{ matrix.cibw.arch || 'auto' }}"
+      CIBW_SKIP: "cp27-* cp35-* pp*"
+      CIBW_BEFORE_BUILD: "pip install cython colorama"
 
     strategy:
       fail-fast: false
@@ -95,7 +97,7 @@ jobs:
           - os: ubuntu-20.04
             name: manylinux2010
             cibw:
-              build: "cp38* cp39* pp3*"
+              build: "cp38* cp39*"
               manylinux_image: manylinux2010
 
           - os: ubuntu-20.04
@@ -158,21 +160,6 @@ jobs:
           pip install --upgrade setuptools pip wheel
           pip install cibuildwheel=="${{ env.cibuildwheel }}" cython=="${{ env.cython }}"
           pip install colorama
-
-      - name: install mac dependencies
-        if: startsWith(matrix.os, 'mac')
-        run: |
-          pip install delocate
-
-      - name: install linux dependencies
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          pip install auditwheel
-
-      - name: install windows dependencies
-        if: startsWith(matrix.os, 'win')
-        run: |
-          pip install delvewheel==0.0.12
 
       - name: show environment
         run: |
