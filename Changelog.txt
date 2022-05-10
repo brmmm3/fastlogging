@@ -1,3 +1,6 @@
+1.0.0:
+Fix a crash when no logfile name has been supplied.
+
 0.9.6:
 When calling flush then really write all pending log entries.
 

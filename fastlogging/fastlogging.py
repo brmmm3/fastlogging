@@ -163,20 +163,21 @@ class Logger(object):
         self._thrTimer = None
         self._thrLogger = None
         self.stopped = False
-        dirName = os.path.dirname(pathName)
-        if pathName is not None and os.path.isdir(dirName if dirName else "."):
-            for logger in domains.values():
-                if pathName == logger.pathName:
-                    common = logger.common
-                    self.common = CommonConfig(common.queue, common.evtQueue, common.evtRotate,
-                                               common.maxSize, common.backupCnt)
-                    break
-            else:
-                self.F = open(pathName, "a", encoding=Logger.encoding)
-                self.pos = self.F.tell()
-                if Logger.useThreads:
-                    self._thrLogger = Thread(target=self.__logThread, daemon=True, name=f"LogThread_{domain}")
-                    self._thrLogger.start()
+        if pathName is not None:
+            dirName = os.path.dirname(pathName)
+            if os.path.isdir(dirName if dirName else "."):
+                for logger in domains.values():
+                    if pathName == logger.pathName:
+                        common = logger.common
+                        self.common = CommonConfig(common.queue, common.evtQueue, common.evtRotate,
+                                                   common.maxSize, common.backupCnt)
+                        break
+                else:
+                    self.F = open(pathName, "a", encoding=Logger.encoding)
+                    self.pos = self.F.tell()
+                    if Logger.useThreads:
+                        self._thrLogger = Thread(target=self.__logThread, daemon=True, name=f"LogThread_{domain}")
+                        self._thrLogger.start()
         if Logger.useThreads and Logger.thrConsoleLogger is None:
             import fastlogging.console
             Logger.thrConsoleLogger = fastlogging.console.ConsoleLogger(Logger.consoleLock)
