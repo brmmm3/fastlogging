@@ -2,6 +2,7 @@
 # Copyright 2019 Martin Bammer. All Rights Reserved.
 # Licensed under MIT license.
 #cython: language_level=3, boundscheck=False
+# distutils: language=c++
 
 """Implements lightweight and fast logging."""
 
