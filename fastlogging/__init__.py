@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # 
-# Copyright (c) <2018> <Martin Bammer, mrbm74 at gmail dot com>
+# Copyright (c) <2024> <Martin Bammer, mrbm74 at gmail dot com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

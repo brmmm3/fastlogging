@@ -20,7 +20,7 @@ except ImportError:
 BASEDIR = os.path.dirname(__file__)
 PKGNAME = 'fastlogging'
 PKGDIR = os.path.join(BASEDIR, PKGNAME)
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 if os.path.exists("build"):
     shutil.rmtree("build")
@@ -87,17 +87,14 @@ else:
             build_ext.build_extensions(self)
 
     cythonize("fastlogging/*.pyx", language_level=3, annotate=annotate,
-              language="c++", exclude=["setup.py"])
-    install_requires = ['Cython']
+              exclude=["setup.py"])
     cmdclass = {'build_ext': build_ext_subclass}
 
     MODULES = [filename[:-4] for filename in os.listdir(PKGDIR)
                if filename.endswith(".pyx")]
     packages = None
     ext_modules = [
-        Extension(PKGNAME + "." + module_name,
-                  sources=[os.path.join(PKGDIR, module_name + ".pyx")],
-                  language="c++")
+        Extension(PKGNAME + "." + module_name, sources=[PKGNAME + "/" + module_name + ".pyx"])
         for module_name in MODULES]
 
 
@@ -120,32 +117,38 @@ setup(
 
     author='Martin Bammer',
     author_email='mrbm74@gmail.com',
-    license='MIT',
+    license="MIT",
 
-    classifiers=[  # Optional
-        'Development Status :: 4 - Beta',
-
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
-
-        'License :: OSI Approved :: MIT License',
-
-        'Operating System :: OS Independent',
-
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "License :: OSI Approved :: MIT License",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Utilities",
     ],
 
     keywords='fast logging',
     include_package_data=True,
     cmdclass=cmdclass,
-    install_requires=install_requires,
     packages=packages,
     ext_modules=ext_modules
 )

@@ -1,3 +1,6 @@
+1.1.0:
+Updates for latest changes in setuptools and Cython.
+
 1.0.0:
 Fix a crash when no logfile name has been supplied.
 

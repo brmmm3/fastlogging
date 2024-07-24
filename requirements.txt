@@ -1,3 +1,6 @@
-Cython
-colorama
-msgpack
+Cython~=3.0.10
+colorama~=0.4.6
+msgpack~=1.0.8
+simplejson~=3.19.2
+zstandard~=0.23.0
+setuptools~=71.1.0
