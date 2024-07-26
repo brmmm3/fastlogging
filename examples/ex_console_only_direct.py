@@ -1,5 +1,5 @@
 
-from fastlogging import LogInit
+from fastlogging import LogInit, Colors
 
 if __name__ == "__main__":
     logger = LogInit(console=True, colors=True)
@@ -12,4 +12,5 @@ if __name__ == "__main__":
     logger.fatal("This is a fatal message.")
     logger.fatal("This is a fatal message.")
     logger.fatal("This is a fatal message.")
+    logger.exception("This is a exception message.")
     logger.shutdown()
