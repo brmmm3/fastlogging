@@ -63,14 +63,12 @@ try:
         DARKYELLOW = Fore.YELLOW
         DARKCYAN = Fore.CYAN
         DARKGREEN = Fore.GREEN
-        DARKORANGE = chr(27) + "[50m"
         WHITE = Style.BRIGHT + DARKWHITE
         RED = Style.BRIGHT + DARKRED
         MAGENTA = Style.BRIGHT + DARKMAGENTA
         GREEN = Style.BRIGHT + DARKGREEN
         YELLOW = Style.BRIGHT + DARKYELLOW
         CYAN = Style.BRIGHT + DARKCYAN
-        ORANGE = Style.BRIGHT + DARKORANGE
 
 except ImportError:
 
@@ -84,17 +82,15 @@ except ImportError:
         DARKYELLOW = ""
         DARKCYAN = ""
         DARKGREEN = ""
-        DARKORANGE = ""
         WHITE = ""
         RED = ""
         MAGENTA = ""
         GREEN = ""
         YELLOW = ""
         CYAN = ""
-        ORANGE = ""
 
 
-LVL2COL = {FATAL: Colors.RED, ERROR: Colors.DARKRED, WARNING: Colors.YELLOW, INFO: Colors.GREEN, DEBUG: Colors.WHITE}
+LVL2COL = {EXCEPTION: Colors.RED, FATAL: Colors.DARKRED, ERROR: Colors.CYAN, WARNING: Colors.YELLOW, INFO: Colors.GREEN, DEBUG: Colors.WHITE}
 
 
 def Rotate():
