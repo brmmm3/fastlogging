@@ -8,16 +8,16 @@
       function drawChart() {
         var data = google.visualization.arrayToDataTable([
           ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging AST opt CONST', 'fastlogging AST opt LEVEL', 'fastlogging AST opt REMOVE'],
-          ['DEBUG', 13.6621, 1.0685, 0.9273, 0.9680, 0.9695, 0.8087],
-          ['INFO', 12.5634, 0.9902, 0.8620, 0.9198, 0.9542, 0.6903],
-          ['WARNING', 10.8204, 0.9650, 0.8163, 0.8883, 0.9370, 0.5956],
-          ['ERROR', 9.0229, 0.8567, 0.7692, 0.8396, 0.9308, 0.4701],
-          ['FATAL', 3.9163, 0.8285, 0.7304, 0.7798, 0.8829, 0.3356]
+          ['DEBUG', 16.5092, 1.4936, 1.5935, 1.5067, 1.5492, 1.2479],
+          ['INFO', 15.5556, 1.3170, 1.3813, 1.3235, 1.3489, 1.0467],
+          ['WARNING', 13.9671, 1.1797, 1.2596, 1.2473, 1.2711, 0.8133],
+          ['ERROR', 11.5037, 1.1494, 1.0714, 1.0783, 1.1376, 0.6356],
+          ['FATAL', 4.9628, 0.9102, 0.9302, 0.9626, 1.0521, 0.4326]
         ]);
 
         var options = {
           chart: {
-            title: 'No log file long',
+            title: 'Log file long',
           },
           bars: 'horizontal' // Required for Material Bar Charts.
         };

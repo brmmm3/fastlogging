@@ -1,5 +1,6 @@
 
 import os
+import sys
 import time
 import logging.handlers
 
@@ -148,9 +149,10 @@ if __name__ == "__main__":
             LoggingWorkOptRem = OptimizeObj(globals(), LoggingWork, "logger", remove=level)
             dts.append(DoFastLogging(cnt, message, level, fileName, bRotate, cbOptimized=LoggingWorkOptRem, prefix="REMOVE"))
             dtAll[LOG2SSYM[level]] = ", ".join(["%.4f" % dt for dt in dts])
-        with open("../doc/benchmarks/%s.dat" % name, "w") as F:
+        fileName = "../doc/benchmarks/%s_%s_%s." % (sys.platform, sys.version.split(" ")[0].replace(".", "_"), name)
+        with open("%s.dat" % fileName, "w") as F:
             F.write(json.dumps(dtAll))
-        with open("../doc/benchmarks/%s.html" % name, "w") as F:
+        with open("%s.html" % fileName, "w") as F:
             F.write(htmlTemplate % dtAll)
     # Benchmark fastlogging module with threads
     DoFastLogging(cnt, message, FATAL, fastFileName, bThreads=True)

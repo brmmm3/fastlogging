@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging AST opt CONST', 'fastlogging AST opt LEVEL', 'fastlogging AST opt REMOVE'],
+          ['DEBUG', 2.6788, 0.6232, 0.8148, 0.5942, 0.5817, 0.5013],
+          ['INFO', 3.0481, 0.5378, 0.6658, 0.5017, 0.5062, 0.4049],
+          ['WARNING', 3.1403, 0.4557, 0.5831, 0.4376, 0.4314, 0.3352],
+          ['ERROR', 2.6772, 0.3800, 0.4379, 0.3276, 0.3306, 0.2464],
+          ['FATAL', 1.2430, 0.2961, 0.3566, 0.2837, 0.2622, 0.1568]
+        ]);
+
+        var options = {
+          chart: {
+            title: 'Log file short',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+
+        var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+    </script>
+  </head>
+  <body>
+    <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+  </body>
+</html>
