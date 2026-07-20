@@ -8,31 +8,31 @@ on:
       - .github/workflows/wheels.yml
 
 env:
-  cython: "0.29.23"
-  cibuildwheel: "1.12.0"
+  cython: "3.2.8"
+  cibuildwheel: "4.1.0"
   TWINE_NONINTERACTIVE: "1"
 
 jobs:
   check-bundle:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.8"
+          python-version: "3.14"
 
   sdist:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.8"
+          python-version: "3.14"
 
       - name: install dependencies
         run: |
@@ -44,7 +44,7 @@ jobs:
         run: |
           python -m build --sdist .
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: "dist/*.tar.gz"
@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      MACOSX_DEPLOYMENT_TARGET: "10.14"
+      MACOSX_DEPLOYMENT_TARGET: "latest"
       CIBW_BUILD_VERBOSITY: "1"
       CIBW_TEST_REQUIRES: "pytest"
       CIBW_BUILD: "${{ matrix.cibw.build || '*' }}"
@@ -79,46 +79,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-10.15
+          - os: macos-latest
             name: mac
 
-          - os: macos-10.15
+          - os: macos-latest
             name: mac-arm
             cibw:
               arch: universal2
-              build: "cp39*"
+              build: "cp314*"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             name: manylinux1
             cibw:
               build: "cp36* cp37*"
               manylinux_image: manylinux1
 
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             name: manylinux2010
             cibw:
               build: "cp38* cp39*"
               manylinux_image: manylinux2010
 
-          - os: windows-2019
+          - os: windows-latest
             name: win32
             architecture: x86
             cibw:
               build: "cp*win32"
 
-          - os: windows-2019
+          - os: windows-latest
             name: win_amd64
             architecture: x64
             cibw:
               build: "*win_amd64"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.8"
+          python-version: "3.14"
           architecture: ${{ matrix.architecture }}
 
       - name: install dependencies
