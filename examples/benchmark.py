@@ -35,8 +35,8 @@ def LoggingWork(logger, message, cnt):
         # noinspection PyBroadException
         try:
             # noinspection PyUnusedLocal
-            x = 1 / 0
-        except:
+            _x = 1 / 0
+        except Exception:
             logger.exception("EXCEPTION")
     dt = time.time() - t1
     print("  dt: %.3f" % dt)

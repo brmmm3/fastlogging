@@ -65,7 +65,7 @@ class LoggingServer(Thread):
                     if self.__running is False:
                         break
                     bAcceptFailed = False
-                except:
+                except Exception:
                     if bAcceptFailed:
                         time.sleep(0.01)
                     else:
@@ -100,7 +100,7 @@ class LoggingServer(Thread):
             # noinspection PyBroadException
             try:
                 prefix = socket.gethostbyaddr(addr)[0] + ": "
-            except:
+            except Exception:
                 prefix = addr + ": "
             with client:
                 # noinspection PyProtectedMember

@@ -75,7 +75,7 @@ class OptimizeAst(ast.NodeTransformer):
         try:
             levelName = args.id  # e.g. INFO
             compare, args = self.__compare_args(levelName)
-        except:
+        except Exception:
             levelNum = args.n
             levelName = self.__value2level[levelNum]
             if self.__value2const:
@@ -116,7 +116,7 @@ class OptimizeAst(ast.NodeTransformer):
                 return visit_children(node)
             if node.body[0].value.func.value.id != self.id:
                 return visit_children(node)
-        except:
+        except Exception:
             return visit_children(node)
         body = node.body[0].value
         attr = body.func.attr
@@ -159,7 +159,7 @@ class OptimizeAst(ast.NodeTransformer):
         try:
             if func.value.id != self.id:
                 return node
-        except:
+        except Exception:
             return node
         attr = func.attr
         if attr in self.__remove:

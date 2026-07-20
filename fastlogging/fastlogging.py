@@ -325,7 +325,7 @@ class Logger(object):
                 if srcFileName not in fileNames:
                     continue
                 os.replace(path_join(dirName, srcFileName), path_join(dirName, f"{logFileName}.{cnt}{zExt}"))
-        except:
+        except Exception:
             pass
         dstFileName = f"{logFileName}.1{zExt}"
         if Logger.compress is None:
@@ -403,7 +403,7 @@ class Logger(object):
                             self.common.evtRotate.set()
                         else:
                             self.__rotate()
-        except:
+        except Exception:
             errMsg = traceback.format_exc()
             if Logger.backlog is not None:
                 Logger.backlog.append((logTime, domain, FATAL, errMsg, None))
@@ -480,7 +480,7 @@ class Logger(object):
                     self.__logEntry(entry)
                 else:
                     self._logMessage(None, entry, 0)
-            except:
+            except Exception:
                 errMsg = traceback.format_exc()
                 if Logger.backlog is not None:
                     Logger.backlog.append((entry[0], entry[1], FATAL, errMsg, None))
