@@ -143,7 +143,7 @@ jobs:
         run: |
           python -m cibuildwheel .
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.name }}
           path: "wheelhouse/*"
